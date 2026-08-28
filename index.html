@@ -41,7 +41,7 @@
   .hero p.lead{color:var(--text-muted); font-size:0.96rem; margin-top:0.7rem;}
 
   .hero-photo{margin-top:1.4rem; border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow); border:1px solid var(--border); aspect-ratio:4/3;}
-  .hero-photo img{width:100%; height:100%; object-fit:cover;}
+  .hero-photo img{width:100%; height:100%; object-fit:cover; object-position:center bottom;}
 
   .btn-primary{background:var(--rescue); color:#fff; border:none; padding:0.95rem 1.6rem; border-radius:50px; font-weight:700; font-size:0.96rem; text-decoration:none; display:inline-flex; align-items:center; gap:8px; box-shadow:0 10px 24px -8px rgba(193,68,44,0.55); cursor:pointer; margin-top:1.3rem; transition:transform 0.15s ease, background 0.2s; font-family:inherit;}
   .btn-primary:hover{background:var(--rescue-deep); transform:translateY(-1px);}
@@ -206,7 +206,7 @@
     submitBtn.innerHTML = "<span>Guardando reserva...</span>";
     errorNote.style.display = "none";
 
-    const waMessage = `¡Hola! Vengo desde la página web de Life Bag.%0A%0A*Quiero reservar mi Life Bag* 🎒%0A👤 *Nombre:* ${encodeURIComponent(name)}%0A📱 *Teléfono:* ${encodeURIComponent(phone)}%0A📍 *Distrito:* ${encodeURIComponent(district)}%0A%0AEstoy interesad@ en el producto, ¿me confirman stock o quedo en lista de espera? 😊`;
+    const waMessage = `Hola! Vengo desde la pagina web de Life Bag.%0A%0A*Quiero reservar mi Life Bag*%0ANombre: ${encodeURIComponent(name)}%0ATelefono: ${encodeURIComponent(phone)}%0ADistrito: ${encodeURIComponent(district)}%0A%0AEstoy interesado en el producto, me confirman stock o quedo en lista de espera?`;
     const waUrl = `https://wa.me/${businessPhone}?text=${waMessage}`;
 
     let saved = true;
