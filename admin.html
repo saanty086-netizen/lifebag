@@ -157,6 +157,48 @@
   }
   .btn-delete:hover{text-decoration:underline;}
   .empty-row td{text-align:center; color:var(--text-muted); padding:2.5rem;}
+
+  .btn-add-client{
+    display:inline-flex; align-items:center; gap:6px; background:var(--forest); color:#fff;
+    border:none; padding:0.7rem 1.2rem; border-radius:50px; font-weight:700; font-size:0.86rem;
+    cursor:pointer; font-family:inherit;
+  }
+  .btn-add-client:hover{background:var(--forest-deep);}
+  .btn-edit{
+    background:transparent; border:none; color:var(--forest); font-weight:700;
+    cursor:pointer; padding:0.4rem; font-size:0.8rem;
+  }
+  .btn-edit:hover{text-decoration:underline;}
+
+  /* ---------- MODAL ---------- */
+  .modal-overlay{
+    display:none; position:fixed; inset:0; background:rgba(15,42,31,0.55); z-index:200;
+    align-items:center; justify-content:center; padding:1rem;
+  }
+  .modal-overlay.show{display:flex;}
+  .modal-box{
+    background:var(--surface); border-radius:var(--radius-lg); padding:1.6rem; width:100%; max-width:420px;
+    box-shadow:0 24px 60px -20px rgba(15,42,31,0.4);
+  }
+  .modal-box h3{font-size:1.15rem; margin-bottom:0.3rem;}
+  .modal-box .modal-sub{color:var(--text-muted); font-size:0.82rem; margin-bottom:1.1rem;}
+  .modal-field{margin-bottom:0.9rem;}
+  .modal-field label{display:block; font-size:0.76rem; font-weight:700; margin-bottom:5px; color:var(--forest-deep);}
+  .modal-field input, .modal-field select{
+    width:100%; padding:0.7rem 0.9rem; border-radius:var(--radius-sm); border:1.5px solid var(--border);
+    font-size:0.9rem; outline:none; font-family:inherit; background:var(--cream);
+  }
+  .modal-field input:focus, .modal-field select:focus{border-color:var(--forest); background:#fff;}
+  .modal-actions{display:flex; gap:0.6rem; margin-top:1.3rem;}
+  .modal-actions button{
+    flex:1; padding:0.75rem; border-radius:50px; font-weight:700; font-size:0.86rem;
+    border:none; cursor:pointer; font-family:inherit;
+  }
+  .modal-cancel{background:var(--cream-deep); color:var(--text);}
+  .modal-cancel:hover{background:var(--border);}
+  .modal-save{background:var(--rescue); color:#fff;}
+  .modal-save:hover{background:var(--rescue-deep);}
+  .modal-error{display:none; background:#fbe6e2; color:var(--rescue-deep); font-size:0.78rem; padding:0.6rem 0.8rem; border-radius:var(--radius-sm); margin-bottom:0.8rem; font-weight:600;}
 </style>
 </head>
 <body>
@@ -254,6 +296,7 @@
             <option value="entregado">Entregado</option>
             <option value="cancelado">Cancelado</option>
           </select>
+          <button type="button" class="btn-add-client" id="openAddModal">+ Agregar cliente</button>
         </div>
 
         <div class="table-wrap">
@@ -281,12 +324,51 @@
     </main>
   </div>
 
+  <!-- ===================== MODAL AGREGAR / EDITAR CLIENTE ===================== -->
+  <div class="modal-overlay" id="clientModal">
+    <div class="modal-box">
+      <h3 id="modalTitle">Agregar cliente</h3>
+      <p class="modal-sub" id="modalSub">Se suma a la lista de espera igual que una reserva desde la web.</p>
+
+      <div class="modal-error" id="modalError">No se pudo guardar. Intentá de nuevo.</div>
+
+      <form id="clientForm">
+        <div class="modal-field">
+          <label for="modalName">Nombre y apellido</label>
+          <input type="text" id="modalName" required autocomplete="off">
+        </div>
+        <div class="modal-field">
+          <label for="modalPhone">Número de WhatsApp</label>
+          <input type="tel" id="modalPhone" required autocomplete="off">
+        </div>
+        <div class="modal-field">
+          <label for="modalDistrict">Distrito / localidad</label>
+          <input type="text" id="modalDistrict" required autocomplete="off">
+        </div>
+        <div class="modal-field">
+          <label for="modalStatus">Estado</label>
+          <select id="modalStatus">
+            <option value="espera">En espera</option>
+            <option value="entregado">Entregado</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="modal-cancel" id="modalCancel">Cancelar</button>
+          <button type="submit" class="modal-save" id="modalSave">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script type="module">
     import { db, auth } from "./firebase-config.js";
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import {
       collection, onSnapshot, query, orderBy,
-      doc, updateDoc, deleteDoc, setDoc, getDoc, increment
+      doc, updateDoc, deleteDoc, setDoc, getDoc, increment,
+      addDoc, serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     // ---------------- AUTH GUARD ----------------
@@ -437,6 +519,7 @@
             <td>
               <div style="display:flex; gap:8px; align-items:center;">
                 <a class="btn-wa" href="https://wa.me/${cleanPhone}" target="_blank">Chat</a>
+                <button class="btn-edit" data-id="${order.id}">Editar</button>
                 <button class="btn-delete" data-id="${order.id}">Eliminar</button>
               </div>
             </td>
@@ -450,6 +533,9 @@
       });
       tableBody.querySelectorAll('.btn-delete').forEach(btn => {
         btn.addEventListener('click', (e) => deleteOrder(e.target.dataset.id));
+      });
+      tableBody.querySelectorAll('.btn-edit').forEach(btn => {
+        btn.addEventListener('click', (e) => openEditModal(e.target.dataset.id));
       });
     }
 
@@ -481,6 +567,95 @@
 
     searchInput.addEventListener("input", applyFilters);
     statusFilter.addEventListener("change", applyFilters);
+
+    // ---------------- MODAL AGREGAR / EDITAR CLIENTE ----------------
+    const clientModal = document.getElementById("clientModal");
+    const clientForm = document.getElementById("clientForm");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalSub = document.getElementById("modalSub");
+    const modalError = document.getElementById("modalError");
+    const modalName = document.getElementById("modalName");
+    const modalPhone = document.getElementById("modalPhone");
+    const modalDistrict = document.getElementById("modalDistrict");
+    const modalStatus = document.getElementById("modalStatus");
+    const modalSave = document.getElementById("modalSave");
+
+    let editingId = null; // null = modo "agregar"
+
+    function openAddModal() {
+      editingId = null;
+      modalTitle.textContent = "Agregar cliente";
+      modalSub.textContent = "Se suma a la lista de espera igual que una reserva desde la web.";
+      clientForm.reset();
+      modalStatus.value = "espera";
+      modalError.style.display = "none";
+      clientModal.classList.add("show");
+      modalName.focus();
+    }
+
+    function openEditModal(id) {
+      const order = ordersCache.find(o => o.id === id);
+      if (!order) return;
+      editingId = id;
+      modalTitle.textContent = "Editar cliente";
+      modalSub.textContent = "Actualizá los datos de esta reserva.";
+      modalName.value = order.nombre || "";
+      modalPhone.value = order.telefono || "";
+      modalDistrict.value = order.distrito || "";
+      modalStatus.value = order.estado || "espera";
+      modalError.style.display = "none";
+      clientModal.classList.add("show");
+      modalName.focus();
+    }
+
+    function closeModal() {
+      clientModal.classList.remove("show");
+      editingId = null;
+    }
+
+    document.getElementById("openAddModal").addEventListener("click", openAddModal);
+    document.getElementById("modalCancel").addEventListener("click", closeModal);
+    clientModal.addEventListener("click", (e) => {
+      if (e.target === clientModal) closeModal();
+    });
+
+    clientForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = modalName.value.trim();
+      const phone = modalPhone.value.trim();
+      const district = modalDistrict.value.trim();
+      const status = modalStatus.value;
+
+      modalSave.disabled = true;
+      modalSave.textContent = "Guardando...";
+      modalError.style.display = "none";
+
+      try {
+        if (editingId) {
+          await updateDoc(doc(db, "pedidos_lifebag", editingId), {
+            nombre: name,
+            telefono: phone,
+            distrito: district,
+            estado: status
+          });
+        } else {
+          await addDoc(collection(db, "pedidos_lifebag"), {
+            nombre: name,
+            telefono: phone,
+            distrito: district,
+            estado: status,
+            fecha: serverTimestamp()
+          });
+        }
+        closeModal();
+      } catch (err) {
+        console.error("Error al guardar cliente:", err);
+        modalError.style.display = "block";
+      }
+
+      modalSave.disabled = false;
+      modalSave.textContent = "Guardar";
+    });
   </script>
 
 </body>
