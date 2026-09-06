@@ -164,6 +164,8 @@
     cursor:pointer; font-family:inherit;
   }
   .btn-add-client:hover{background:var(--forest-deep);}
+  .btn-armar{background:var(--olive);}
+  .btn-armar:hover{background:#5a6832;}
   .btn-edit{
     background:transparent; border:none; color:var(--forest); font-weight:700;
     cursor:pointer; padding:0.4rem; font-size:0.8rem;
@@ -393,7 +395,10 @@
 
           <div class="inv-toolbar">
             <label><input type="checkbox" id="invShowInactive"> Mostrar desactivados</label>
-            <button type="button" class="btn-add-client" id="invAddBtn">+ Agregar producto</button>
+            <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+              <button type="button" class="btn-add-client btn-armar" id="armarKitsBtn">🧰 Armar kits</button>
+              <button type="button" class="btn-add-client" id="invAddBtn">+ Agregar producto</button>
+            </div>
           </div>
 
           <div class="table-wrap">
@@ -626,13 +631,35 @@
     </div>
   </div>
 
+  <!-- ===================== MODAL ARMAR KITS ===================== -->
+  <div class="modal-overlay" id="armarKitsModal">
+    <div class="modal-box">
+      <h3>Armar kits</h3>
+      <p class="modal-sub" id="armarKitsSub">Descuenta del inventario lo necesario para armar los kits e incrementa los kits disponibles para vender.</p>
+
+      <div class="modal-error" id="armarKitsError">No se pudieron armar los kits.</div>
+
+      <form id="armarKitsForm">
+        <div class="modal-field">
+          <label for="armarKitsCantidad">Cantidad de kits a armar</label>
+          <input type="number" id="armarKitsCantidad" step="1" min="1" required autocomplete="off">
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="modal-cancel" id="armarKitsCancel">Cancelar</button>
+          <button type="submit" class="modal-save" id="armarKitsSave">Armar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script type="module">
     import { db, auth } from "./firebase-config.js";
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import {
       collection, onSnapshot, query, orderBy,
       doc, updateDoc, deleteDoc, setDoc, getDoc, increment,
-      addDoc, serverTimestamp
+      addDoc, serverTimestamp, runTransaction
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     // ---------------- AUTH GUARD ----------------
@@ -1253,6 +1280,123 @@
 
       compraModalSave.disabled = false;
       compraModalSave.textContent = "Registrar";
+    });
+
+    // ---- Armar kits (descuenta inventario + suma kits disponibles, todo atómico) ----
+    const armarKitsModal = document.getElementById("armarKitsModal");
+    const armarKitsForm = document.getElementById("armarKitsForm");
+    const armarKitsSub = document.getElementById("armarKitsSub");
+    const armarKitsError = document.getElementById("armarKitsError");
+    const armarKitsCantidad = document.getElementById("armarKitsCantidad");
+    const armarKitsSave = document.getElementById("armarKitsSave");
+    const armarKitsBtn = document.getElementById("armarKitsBtn");
+
+    function getKitProducts() {
+      // Mismo criterio que el cálculo de capacidad: activos, parte del kit, con cantidad por kit válida
+      return invCache.filter(p => p.activo !== false && p.esKit && Number(p.cantidadPorKit) > 0);
+    }
+
+    function openArmarKitsModal() {
+      const kitProducts = getKitProducts();
+      armarKitsError.style.display = "none";
+      armarKitsForm.reset();
+      if (kitProducts.length === 0) {
+        armarKitsSub.textContent = "Todavía no marcaste ningún producto como \"parte del kit\".";
+        armarKitsCantidad.disabled = true;
+      } else {
+        let maxKits = Infinity;
+        kitProducts.forEach(p => {
+          const posibles = Math.floor((Number(p.stockActual) || 0) / Number(p.cantidadPorKit));
+          if (posibles < maxKits) maxKits = posibles;
+        });
+        armarKitsSub.textContent = `Ahora mismo podés armar hasta ${maxKits} kit(s) con el stock disponible.`;
+        armarKitsCantidad.disabled = false;
+        armarKitsCantidad.max = maxKits;
+      }
+      armarKitsModal.classList.add("show");
+      armarKitsCantidad.focus();
+    }
+
+    function closeArmarKitsModal() {
+      armarKitsModal.classList.remove("show");
+    }
+
+    armarKitsBtn.addEventListener('click', openArmarKitsModal);
+    document.getElementById("armarKitsCancel").addEventListener('click', closeArmarKitsModal);
+    armarKitsModal.addEventListener('click', (e) => { if (e.target === armarKitsModal) closeArmarKitsModal(); });
+
+    async function armarKits(cantidad) {
+      const kitProducts = getKitProducts();
+      if (kitProducts.length === 0) {
+        throw new Error("No hay productos marcados como parte del kit.");
+      }
+      const items = kitProducts.map(p => ({
+        ref: doc(db, "inventario_productos", p.id),
+        nombreFallback: p.nombre,
+        cantidadPorKitFallback: Number(p.cantidadPorKit)
+      }));
+
+      await runTransaction(db, async (transaction) => {
+        // 1) Todas las lecturas primero (requisito de Firestore para transacciones)
+        const reads = [];
+        for (const item of items) {
+          const snap = await transaction.get(item.ref);
+          if (!snap.exists()) {
+            throw new Error(`El producto "${item.nombreFallback}" ya no existe.`);
+          }
+          const data = snap.data();
+          reads.push({
+            ref: item.ref,
+            nombre: data.nombre || item.nombreFallback,
+            stockActual: Number(data.stockActual) || 0,
+            cantidadPorKit: Number(data.cantidadPorKit) || item.cantidadPorKitFallback
+          });
+        }
+        const prodSnap = await transaction.get(prodRef);
+        const bolsasActuales = prodSnap.exists() ? (Number(prodSnap.data().bolsas) || 0) : 0;
+
+        // 2) Validar que alcance el stock de TODOS los productos antes de tocar nada
+        for (const r of reads) {
+          const requerido = r.cantidadPorKit * cantidad;
+          if (r.stockActual < requerido) {
+            throw new Error(`Stock insuficiente de "${r.nombre}": hay ${r.stockActual}, se necesitan ${requerido}.`);
+          }
+        }
+
+        // 3) Recién ahora, escrituras: descontar cada insumo y sumar kits disponibles
+        reads.forEach(r => {
+          const requerido = r.cantidadPorKit * cantidad;
+          transaction.update(r.ref, { stockActual: r.stockActual - requerido });
+        });
+
+        if (prodSnap.exists()) {
+          transaction.update(prodRef, { bolsas: bolsasActuales + cantidad });
+        } else {
+          transaction.set(prodRef, { cuadraditos: 0, mantas: 0, bolsas: cantidad });
+        }
+      });
+    }
+
+    armarKitsForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const cantidad = parseInt(armarKitsCantidad.value, 10);
+      if (isNaN(cantidad) || cantidad <= 0) return;
+
+      armarKitsSave.disabled = true;
+      armarKitsSave.textContent = "Armando...";
+      armarKitsError.style.display = "none";
+
+      try {
+        await armarKits(cantidad);
+        closeArmarKitsModal();
+      } catch (err) {
+        console.error("Error al armar kits:", err);
+        armarKitsError.textContent = err.message || "No se pudieron armar los kits.";
+        armarKitsError.style.display = "block";
+      }
+
+      armarKitsSave.disabled = false;
+      armarKitsSave.textContent = "Armar";
     });
 
     // ---------------- MODAL AGREGAR / EDITAR CLIENTE ----------------
