@@ -537,28 +537,58 @@
             <div class="cap-value" id="finKitsVendidos">0</div>
             <div class="cap-sub">Acumulado histórico</div>
           </div>
+          <div class="cap-card">
+            <div class="cap-label">Mantas posibles</div>
+            <div class="cap-value" id="finMantasPosibles">0</div>
+            <div class="cap-sub">Según cuadritos y lana disponibles en Producción</div>
+          </div>
         </div>
 
+        <h3 style="margin:0 0 0.8rem; font-size:0.95rem; color:var(--forest-deep);">Costo de la manta</h3>
         <div class="cap-grid-4">
           <div class="cap-card">
-            <div class="cap-label">Costo por kit</div>
+            <div class="cap-label">Costo de la lana</div>
+            <div class="cap-value" id="finCostoLana">$0</div>
+            <div class="cap-sub">Costo de la lana × lana por manta (Configuración)</div>
+          </div>
+          <div class="cap-card">
+            <div class="cap-label">Costo de los cuadritos</div>
+            <div class="cap-value" id="finCostoCuadritos">$0</div>
+            <div class="cap-sub">Costo del cuadrito × cuadritos por manta (Configuración)</div>
+          </div>
+          <div class="cap-card">
+            <div class="cap-label">Costo total de una manta</div>
+            <div class="cap-value" id="finCostoManta">$0</div>
+            <div class="cap-sub">Lana + cuadritos</div>
+          </div>
+          <div class="cap-card">
+            <div class="cap-label">Costo de la bolsa</div>
+            <div class="cap-value" id="finCostoBolsa">$0</div>
+            <div class="cap-sub">Costo unitario del producto "Bolsas" en Inventario</div>
+          </div>
+        </div>
+
+        <h3 style="margin:2rem 0 0.8rem; font-size:0.95rem; color:var(--forest-deep);">Costo y ganancia del Life Bag</h3>
+        <div class="cap-grid-4">
+          <div class="cap-card">
+            <div class="cap-label">Costo total del Life Bag</div>
             <div class="cap-value" id="finCostoKit">$0</div>
-            <div class="cap-sub">Costo unitario × cantidad por kit de cada insumo</div>
+            <div class="cap-sub">Manta + bolsa + demás insumos del kit</div>
           </div>
           <div class="cap-card">
             <div class="cap-label">Precio de venta</div>
             <input type="number" id="finPrecioVenta" step="0.01" min="0" value="45000"
               style="width:100%; border:none; background:transparent; outline:none; font-family:'Fraunces',serif;
               font-size:2rem; font-weight:700; color:var(--forest); margin-top:0.3rem; padding:0;">
-            <div class="cap-sub">Se guarda solo, en tiempo real</div>
+            <div class="cap-sub">Mismo valor que en Configuración</div>
           </div>
           <div class="cap-card">
-            <div class="cap-label">Ganancia por kit</div>
+            <div class="cap-label">Ganancia por unidad</div>
             <div class="cap-value" id="finGananciaKit">$0</div>
-            <div class="cap-sub">Precio de venta − costo por kit</div>
+            <div class="cap-sub">Precio de venta − costo total del Life Bag</div>
           </div>
           <div class="cap-card">
-            <div class="cap-label">Margen</div>
+            <div class="cap-label">Margen de ganancia</div>
             <div class="cap-value" id="finMargenKit">0%</div>
             <div class="cap-sub">Ganancia ÷ precio de venta</div>
           </div>
@@ -605,17 +635,17 @@
           </div>
 
           <div class="prod-card">
-            <div class="ic">🛍️</div>
-            <h3>Costo de la bolsa</h3>
-            <p class="hint">Costo unitario de la bolsa del kit</p>
-            <input type="number" class="prod-input" id="cfg-costoBolsa" min="0" step="0.01" value="0">
-          </div>
-
-          <div class="prod-card">
             <div class="ic">🧵</div>
             <h3>Costo de la lana</h3>
             <p class="hint">Costo por unidad de lana (misma unidad que usás en Producción)</p>
             <input type="number" class="prod-input" id="cfg-costoLana" min="0" step="0.01" value="0">
+          </div>
+
+          <div class="prod-card">
+            <div class="ic">🟪</div>
+            <h3>Costo del cuadrito</h3>
+            <p class="hint">Costo por cada cuadrito tejido (lana, mano de obra, etc.)</p>
+            <input type="number" class="prod-input" id="cfg-costoCuadrito" min="0" step="0.01" value="0">
           </div>
         </div>
 
@@ -638,7 +668,7 @@
 
         <div class="prod-summary" style="margin-top:2rem;">
           <span>ℹ️</span>
-          <span>El costo, la cantidad necesaria por kit y el stock mínimo de <strong>cada producto individual</strong> (tela, broches, etc.) se configuran directamente en Producción → Inventario, al agregar o editar ese producto — ahí ya son 100% editables, sin nada fijo en el código.</span>
+          <span>El costo, la cantidad necesaria por kit y el stock mínimo de <strong>cada producto individual</strong> (bolsa, tela, broches, etc.) se configuran directamente en Producción → Inventario, al agregar o editar ese producto. El costo de la bolsa que ves en Finanzas se toma automáticamente de ahí, no se repite acá.</span>
         </div>
       </section>
 
@@ -864,8 +894,8 @@
 
     const configInputs = {
       precioVentaLifeBag: document.getElementById('cfg-precioVentaLifeBag'),
-      costoBolsa: document.getElementById('cfg-costoBolsa'),
       costoLana: document.getElementById('cfg-costoLana'),
+      costoCuadrito: document.getElementById('cfg-costoCuadrito'),
       cuadritosPorManta: document.getElementById('cfg-cuadritosPorManta'),
       lanaPorManta: document.getElementById('cfg-lanaPorManta')
     };
@@ -878,10 +908,16 @@
         const prodSnap = await getDoc(prodRef);
         const lanaPorMantaPrevia = prodSnap.exists() ? Number(prodSnap.data().lanaPorManta) || 0 : 0;
 
+        // Si ya había un precio de venta cargado en Finanzas (versión anterior,
+        // guardado en finanzas/configuracion), lo migramos acá para que quede
+        // en un solo lugar y no se dupliquen los datos.
+        const finSnapPrevio = await getDoc(doc(db, "finanzas", "configuracion"));
+        const precioVentaPrevio = finSnapPrevio.exists() ? Number(finSnapPrevio.data().precioVentaKit) || 0 : 0;
+
         await setDoc(configRef, {
-          precioVentaLifeBag: 0,
-          costoBolsa: 0,
+          precioVentaLifeBag: precioVentaPrevio,
           costoLana: 0,
+          costoCuadrito: 0,
           cuadritosPorManta: 16,
           lanaPorManta: lanaPorMantaPrevia
         });
@@ -897,6 +933,7 @@
         });
 
         actualizarMantasPosibles();
+        renderFinTable();
       });
     }
 
@@ -920,7 +957,10 @@
     const prodRef = doc(db, "produccion", "contadores");
     let prodCache = {};
 
-    function actualizarMantasPosibles() {
+    // Cantidad de mantas que se pueden armar con el stock actual de Producción
+    // (cuadritos y lana disponibles). Única función para este cálculo: la usan
+    // tanto la pestaña Producción como la pestaña Finanzas.
+    function calcMantasPosibles() {
       const cuadritos = Number(prodCache.cuadraditos) || 0;
       const lanaDisponible = Number(prodCache.lanaDisponible) || 0;
       const cuadritosPorManta = Number(configCache.cuadritosPorManta) || 0;
@@ -929,8 +969,17 @@
       const porCuadritos = cuadritosPorManta > 0 ? Math.floor(cuadritos / cuadritosPorManta) : 0;
       const porLana = lanaPorManta > 0 ? Math.floor(lanaDisponible / lanaPorManta) : 0;
 
+      return Math.max(0, Math.min(porCuadritos, porLana));
+    }
+
+    function actualizarMantasPosibles() {
+      const mantasPosibles = calcMantasPosibles();
+
       const el = document.getElementById('mantasPosibles');
-      if (el) el.textContent = Math.max(0, Math.min(porCuadritos, porLana));
+      if (el) el.textContent = mantasPosibles;
+
+      const finEl = document.getElementById('finMantasPosibles');
+      if (finEl) finEl.textContent = mantasPosibles;
     }
 
     // Campos que se escriben a mano (con debounce) en vez de +/-
@@ -981,6 +1030,11 @@
         if (finKitsDisponiblesEl) finKitsDisponiblesEl.textContent = disponibles;
         if (finKitsVendidosEl) finKitsVendidosEl.textContent = vendidos;
         if (finKitsArmadosEl) finKitsArmadosEl.textContent = disponibles + vendidos;
+
+        // Las mantas terminadas (stock de Producción) también limitan cuántos
+        // kits se pueden armar, así que hay que volver a calcular esa capacidad.
+        renderKitCapacity();
+        renderFinTable();
       });
     }
 
@@ -1145,38 +1199,32 @@
 
     // ---------------- FINANZAS ----------------
     // Finanzas NO tiene colección propia: lee y edita los mismos documentos
-    // de "inventario_productos" que usa Producción. Solo se agrega una
-    // configuración global con el precio de venta del Life Bag.
+    // de "inventario_productos" (Producción → Inventario), "produccion/contadores"
+    // (stock de cuadritos, lana y mantas) y "configuracion/valores" (precios y
+    // cantidades) que ya usa el resto del panel. Así no se duplica ningún dato:
+    // todo se toma de una única fuente y Finanzas solo lo combina y lo muestra.
     const finTableBody = document.getElementById("finTableBody");
     const finPrecioVentaInput = document.getElementById("finPrecioVenta");
     const finCostoKitEl = document.getElementById("finCostoKit");
     const finGananciaKitEl = document.getElementById("finGananciaKit");
     const finMargenKitEl = document.getElementById("finMargenKit");
+    const finCostoLanaEl = document.getElementById("finCostoLana");
+    const finCostoCuadritosEl = document.getElementById("finCostoCuadritos");
+    const finCostoMantaEl = document.getElementById("finCostoManta");
+    const finCostoBolsaEl = document.getElementById("finCostoBolsa");
     const finDebounceTimers = {};
-    const finConfigRef = doc(db, "finanzas", "configuracion");
-
-    let finPrecioVentaKit = 45000;
 
     function fmtMoney(n) {
       const val = Number(n) || 0;
       return "$" + val.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
-    async function startFinanzasListener() {
-      // Crear el documento de configuración si no existe (precio inicial $45.000)
-      const snap = await getDoc(finConfigRef);
-      if (!snap.exists()) {
-        await setDoc(finConfigRef, { precioVentaKit: 45000 });
-      }
-
-      onSnapshot(finConfigRef, (docSnap) => {
-        const data = docSnap.data() || {};
-        finPrecioVentaKit = Number(data.precioVentaKit) || 0;
-        if (document.activeElement !== finPrecioVentaInput) {
-          finPrecioVentaInput.value = finPrecioVentaKit;
-        }
-        renderFinTable();
-      });
+    // El precio de venta del Life Bag vive en un solo lugar: configuracion/valores
+    // (campo precioVentaLifeBag). El input de Finanzas y el de Configuración
+    // escriben y leen exactamente el mismo campo, así nunca quedan desincronizados.
+    function startFinanzasListener() {
+      // Nada que escuchar acá: el precio de venta ya llega vía startConfigListener()
+      // (configCache.precioVentaLifeBag) y ese listener llama a renderFinTable().
     }
 
     let finPrecioDebounce = null;
@@ -1187,7 +1235,7 @@
         let value = parseFloat(raw);
         if (isNaN(value) || value < 0) value = 0;
         try {
-          await setDoc(finConfigRef, { precioVentaKit: value }, { merge: true });
+          await setDoc(configRef, { precioVentaLifeBag: value }, { merge: true });
         } catch (err) {
           console.error("Error al guardar el precio de venta:", err);
           alert("No se pudo guardar el precio de venta.");
@@ -1195,18 +1243,69 @@
       }, 500);
     });
 
-    // Costo de fabricar 1 kit: suma de costoUnitario × cantidadPorKit
-    // de cada producto activo del inventario marcado como "parte del kit"
-    function calcCostoKit() {
+    // ---- Costos derivados (Configuración + Inventario, sin datos propios) ----
+
+    // Costo de la lana usada en 1 manta = costo unitario de la lana × lana por manta
+    function calcCostoLanaPorManta() {
+      return (Number(configCache.costoLana) || 0) * (Number(configCache.lanaPorManta) || 0);
+    }
+
+    // Costo de los cuadritos usados en 1 manta = costo unitario del cuadrito × cuadritos por manta
+    function calcCostoCuadritosPorManta() {
+      return (Number(configCache.costoCuadrito) || 0) * (Number(configCache.cuadritosPorManta) || 0);
+    }
+
+    // Costo total de fabricar 1 manta = lana + cuadritos
+    function calcCostoManta() {
+      return calcCostoLanaPorManta() + calcCostoCuadritosPorManta();
+    }
+
+    // Encuentra el producto "Bolsas" del inventario (mismo criterio que se usa
+    // en la capacidad de armado), para no tener un costo de bolsa aparte.
+    function getBolsaProducto() {
+      return invCache.find(p =>
+        p.activo !== false && p.esKit && (p.nombre || "").trim().toLowerCase() === "bolsas"
+      );
+    }
+
+    function calcCostoBolsa() {
+      const bolsa = getBolsaProducto();
+      return bolsa ? (Number(bolsa.costoUnitario) || 0) * (Number(bolsa.cantidadPorKit) || 1) : 0;
+    }
+
+    // Costo de todos los insumos del inventario marcados "parte del kit"
+    // (incluye la bolsa, ya contada en calcCostoBolsa): suma de
+    // costoUnitario × cantidadPorKit de cada uno.
+    function calcCostoInsumosKit() {
       return invCache
         .filter(p => p.activo !== false && p.esKit && Number(p.cantidadPorKit) > 0)
         .reduce((sum, p) => sum + (Number(p.costoUnitario) || 0) * (Number(p.cantidadPorKit) || 0), 0);
     }
 
+    // Costo total de un Life Bag = 1 manta (lana + cuadritos) + los insumos
+    // del kit (bolsa y todo lo demás cargado en Producción → Inventario).
+    function calcCostoLifeBag() {
+      return calcCostoManta() + calcCostoInsumosKit();
+    }
+
     function renderFinTable() {
-      const costoKit = calcCostoKit();
-      const ganancia = finPrecioVentaKit - costoKit;
-      const margen = finPrecioVentaKit > 0 ? (ganancia / finPrecioVentaKit) * 100 : 0;
+      const precioVenta = Number(configCache.precioVentaLifeBag) || 0;
+      if (document.activeElement !== finPrecioVentaInput) {
+        finPrecioVentaInput.value = precioVenta;
+      }
+
+      const costoLana = calcCostoLanaPorManta();
+      const costoCuadritos = calcCostoCuadritosPorManta();
+      const costoManta = calcCostoManta();
+      const costoBolsa = calcCostoBolsa();
+      const costoKit = calcCostoLifeBag();
+      const ganancia = precioVenta - costoKit;
+      const margen = precioVenta > 0 ? (ganancia / precioVenta) * 100 : 0;
+
+      if (finCostoLanaEl) finCostoLanaEl.textContent = fmtMoney(costoLana);
+      if (finCostoCuadritosEl) finCostoCuadritosEl.textContent = fmtMoney(costoCuadritos);
+      if (finCostoMantaEl) finCostoMantaEl.textContent = fmtMoney(costoManta);
+      if (finCostoBolsaEl) finCostoBolsaEl.textContent = fmtMoney(costoBolsa);
 
       finCostoKitEl.textContent = fmtMoney(costoKit);
       finGananciaKitEl.textContent = fmtMoney(ganancia);
@@ -1312,34 +1411,43 @@
         p.activo !== false && p.esKit && Number(p.cantidadPorKit) > 0
       );
 
+      const finKitsPosiblesEl = document.getElementById('finKitsPosibles');
+
       if (kitProducts.length === 0) {
         capBolsas.textContent = "—";
         capKits.textContent = "—";
         capLimitante.textContent = "—";
         capLimitanteSub.textContent = "Marcá productos como \"parte del kit\" para ver este cálculo.";
-        const finKitsPosiblesEl0 = document.getElementById('finKitsPosibles');
-        if (finKitsPosiblesEl0) finKitsPosiblesEl0.textContent = "—";
+        if (finKitsPosiblesEl) finKitsPosiblesEl.textContent = "—";
         return;
       }
 
       let kits = Infinity;
-      let limitante = null;
+      let limitanteNombre = null;
+      let limitanteSub = "";
       kitProducts.forEach(p => {
         const posibles = Math.floor((Number(p.stockActual) || 0) / Number(p.cantidadPorKit));
         if (posibles < kits) {
           kits = posibles;
-          limitante = p;
+          limitanteNombre = p.nombre;
+          limitanteSub = `Stock: ${Number(p.stockActual) || 0} ${p.unidad || ''} · alcanza para ${kits} kit(s)`;
         }
       });
+
+      // Cada Life Bag lleva 1 manta terminada: el stock de mantas (dato de
+      // Producción) también limita cuántos kits se pueden armar hoy.
+      const mantasTerminadas = Number(prodCache.mantas) || 0;
+      if (mantasTerminadas < kits) {
+        kits = mantasTerminadas;
+        limitanteNombre = "Mantas terminadas";
+        limitanteSub = `Stock: ${mantasTerminadas} manta(s) · alcanza para ${kits} kit(s)`;
+      }
 
       const bolsasProd = kitProducts.find(p => (p.nombre || "").trim().toLowerCase() === "bolsas");
       capBolsas.textContent = bolsasProd ? (Number(bolsasProd.stockActual) || 0) : "—";
       capKits.textContent = kits;
-      capLimitante.textContent = limitante ? limitante.nombre : "—";
-      capLimitanteSub.textContent = limitante
-        ? `Stock: ${Number(limitante.stockActual) || 0} ${limitante.unidad || ''} · alcanza para ${kits} kit(s)`
-        : "";
-      const finKitsPosiblesEl = document.getElementById('finKitsPosibles');
+      capLimitante.textContent = limitanteNombre || "—";
+      capLimitanteSub.textContent = limitanteSub;
       if (finKitsPosiblesEl) finKitsPosiblesEl.textContent = kits;
     }
 
