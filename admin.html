@@ -159,6 +159,9 @@
   .status-espera{background:#fdf0d5; color:var(--warning);}
   .status-entregado{background:#dcefe0; color:var(--success);}
   .status-cancelado{background:#fbe6e2; color:var(--danger);}
+  .sync-badge{font-size:0.68rem; margin-top:0.3rem; font-weight:600; white-space:nowrap;}
+  .sync-badge.sync-ok{color:var(--success);}
+  .sync-badge.sync-pending{color:var(--warning);}
   .btn-wa{
     display:inline-flex; align-items:center; gap:4px; background:#25d366; color:#fff;
     text-decoration:none; padding:0.4rem 0.75rem; border-radius:8px; font-weight:700; font-size:0.78rem;
@@ -497,12 +500,13 @@
                   <th>Cliente</th>
                   <th>Teléfono</th>
                   <th>Distrito</th>
+                  <th>Kits</th>
                   <th>Estado</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
               <tbody id="ordersTableBody">
-                <tr class="empty-row"><td colspan="7">Cargando pedidos...</td></tr>
+                <tr class="empty-row"><td colspan="8">Cargando pedidos...</td></tr>
               </tbody>
             </table>
           </div>
@@ -594,6 +598,20 @@
           </div>
         </div>
 
+        <h3 style="margin:2rem 0 0.8rem; font-size:0.95rem; color:var(--forest-deep);">Ingresos y ganancia acumulados</h3>
+        <div class="cap-grid-2">
+          <div class="cap-card">
+            <div class="cap-label">Ingresos totales</div>
+            <div class="cap-value" id="finIngresosTotales">$0</div>
+            <div class="cap-sub">Suma de todas las ventas: pedidos entregados + ventas manuales</div>
+          </div>
+          <div class="cap-card">
+            <div class="cap-label">Ganancia acumulada</div>
+            <div class="cap-value" id="finGananciaAcumulada">$0</div>
+            <div class="cap-sub">Ingresos totales − (costo actual del Life Bag × kits vendidos)</div>
+          </div>
+        </div>
+
         <div class="table-wrap">
           <div class="table-scroll">
             <table class="fin-table">
@@ -680,6 +698,9 @@
     <div class="modal-box">
       <h3 id="modalTitle">Agregar cliente</h3>
       <p class="modal-sub" id="modalSub">Se suma a la lista de espera igual que una reserva desde la web.</p>
+      <p class="modal-sub" id="modalVentaHint" style="display:none; color:var(--success); font-weight:600;">
+        💰 Esta venta ya fue registrada en Finanzas (stock e ingresos actualizados). Si cambiás el estado a "En espera" o "Cancelado" se revertirá automáticamente.
+      </p>
 
       <div class="modal-error" id="modalError">No se pudo guardar. Intentá de nuevo.</div>
 
@@ -695,6 +716,10 @@
         <div class="modal-field">
           <label for="modalDistrict">Distrito / localidad</label>
           <input type="text" id="modalDistrict" required autocomplete="off">
+        </div>
+        <div class="modal-field">
+          <label for="modalCantidadKits">Cantidad de kits</label>
+          <input type="number" id="modalCantidadKits" min="1" step="1" value="1" required>
         </div>
         <div class="modal-field">
           <label for="modalStatus">Estado</label>
@@ -885,6 +910,7 @@
       startOrdersListener();
       startFinanzasListener();
       startInventoryListener();
+      startVentasListener();
     }
 
     // ---------------- CONFIGURACIÓN ----------------
@@ -1116,7 +1142,7 @@
       countDelivered.textContent = delivered;
 
       if (orders.length === 0) {
-        tableBody.innerHTML = `<tr class="empty-row"><td colspan="7">No hay pedidos que coincidan con la búsqueda.</td></tr>`;
+        tableBody.innerHTML = `<tr class="empty-row"><td colspan="8">No hay pedidos que coincidan con la búsqueda.</td></tr>`;
         return;
       }
 
@@ -1130,6 +1156,8 @@
         }) : "Reciente";
 
         const cleanPhone = (order.telefono || "").replace(/\D/g, "");
+        const cantidadKits = Math.max(1, parseInt(order.cantidadKits, 10) || 1);
+        const ventaRegistrada = order.ventaRegistrada === true;
 
         return `
           <tr>
@@ -1138,12 +1166,14 @@
             <td style="font-weight:700;">${escapeHtml(order.nombre || 'Sin nombre')}</td>
             <td>${escapeHtml(order.telefono || '-')}</td>
             <td>${escapeHtml(order.distrito || '-')}</td>
+            <td style="text-align:center; font-weight:700;">${cantidadKits}</td>
             <td>
               <select class="status-select status-${estado}" data-id="${order.id}">
                 <option value="espera" ${estado === 'espera' ? 'selected' : ''}>⏳ En espera</option>
                 <option value="entregado" ${estado === 'entregado' ? 'selected' : ''}>✅ Entregado</option>
                 <option value="cancelado" ${estado === 'cancelado' ? 'selected' : ''}>❌ Cancelado</option>
               </select>
+              ${estado === 'entregado' ? `<div class="sync-badge ${ventaRegistrada ? 'sync-ok' : 'sync-pending'}">${ventaRegistrada ? '💰 Venta sincronizada' : '⏳ Aplicando...'}</div>` : ''}
             </td>
             <td>
               <div style="display:flex; gap:8px; align-items:center;">
@@ -1174,12 +1204,115 @@
       return div.innerHTML;
     }
 
+    // Cambia el estado de un pedido y, cuando corresponde, aplica (o revierte)
+    // su impacto en Producción y Finanzas dentro de una única transacción de
+    // Firestore. Esto es lo que garantiza que una misma entrega nunca se
+    // registre dos veces, incluso si se recarga la página o se reintenta:
+    // Firestore es la única fuente de verdad y el indicador "ventaRegistrada",
+    // guardado en el propio pedido, es lo que se consulta antes de aplicar algo.
+    async function cambiarEstadoPedido(id, newStatus) {
+      const pedidoRef = doc(db, "pedidos_lifebag", id);
+      // Se genera acá afuera (no cuesta una lectura al servidor) para poder
+      // usarlo tanto en la escritura de la venta como en la del pedido.
+      const ventaRef = doc(collection(db, "ventas_kits"));
+
+      await runTransaction(db, async (transaction) => {
+        // ---- 1) Lecturas (todas antes de cualquier escritura) ----
+        const pedidoSnap = await transaction.get(pedidoRef);
+        if (!pedidoSnap.exists()) {
+          throw new Error("El pedido ya no existe.");
+        }
+        const pedido = pedidoSnap.data();
+        const yaAplicada = pedido.ventaRegistrada === true;
+
+        const prodSnap = await transaction.get(prodRef);
+        const prodData = prodSnap.exists() ? prodSnap.data() : {};
+        const disponibles = Number(prodData.bolsas) || 0;
+        const vendidosActuales = Number(prodData.kitsVendidos) || 0;
+
+        // ---- Caso A: pasa a ENTREGADO y todavía no se le aplicó el impacto ----
+        // (idempotente: si "ventaRegistrada" ya es true, no vuelve a entrar acá)
+        if (newStatus === "entregado" && !yaAplicada) {
+          const configSnap = await transaction.get(configRef);
+          const configData = configSnap.exists() ? configSnap.data() : {};
+          const precioUnitario = Number(configData.precioVentaLifeBag) || 0;
+          const cantidad = Math.max(1, parseInt(pedido.cantidadKits, 10) || 1);
+
+          if (cantidad > disponibles) {
+            throw new Error(
+              `No hay suficientes kits armados para entregar este pedido: hay ${disponibles} disponible(s) y se necesitan ${cantidad}.`
+            );
+          }
+
+          const montoTotal = precioUnitario * cantidad;
+
+          // ---- 2) Escrituras ----
+          transaction.update(prodRef, {
+            bolsas: disponibles - cantidad,
+            kitsVendidos: vendidosActuales + cantidad
+          });
+
+          transaction.set(ventaRef, {
+            origen: "pedido",
+            pedidoId: id,
+            cantidad,
+            precioUnitario,
+            montoTotal,
+            fecha: serverTimestamp()
+          });
+
+          transaction.update(pedidoRef, {
+            estado: newStatus,
+            ventaRegistrada: true,
+            ventaId: ventaRef.id,
+            cantidadKitsVendidos: cantidad,
+            precioVentaUnitario: precioUnitario,
+            montoVenta: montoTotal,
+            fechaVenta: serverTimestamp()
+          });
+          return;
+        }
+
+        // ---- Caso B: estaba ENTREGADO (con venta ya aplicada) y pasa a otro
+        // estado -> se revierte el impacto una sola vez ----
+        if (newStatus !== "entregado" && yaAplicada) {
+          const cantidad = Math.max(1, parseInt(pedido.cantidadKitsVendidos, 10) || parseInt(pedido.cantidadKits, 10) || 1);
+
+          transaction.update(prodRef, {
+            bolsas: disponibles + cantidad,
+            kitsVendidos: Math.max(0, vendidosActuales - cantidad)
+          });
+
+          if (pedido.ventaId) {
+            transaction.update(doc(db, "ventas_kits", pedido.ventaId), {
+              revertida: true,
+              fechaReversion: serverTimestamp()
+            });
+          }
+
+          transaction.update(pedidoRef, {
+            estado: newStatus,
+            ventaRegistrada: false
+          });
+          return;
+        }
+
+        // ---- Caso C: sin impacto financiero que aplicar ni revertir
+        // (espera <-> cancelado, o ya estaba entregado y sigue entregado) ----
+        transaction.update(pedidoRef, { estado: newStatus });
+      });
+    }
+
     async function updateStatus(id, newStatus) {
       try {
-        await updateDoc(doc(db, "pedidos_lifebag", id), { estado: newStatus });
+        await cambiarEstadoPedido(id, newStatus);
       } catch (err) {
-        console.error("Error al actualizar:", err);
-        alert("No se pudo actualizar el estado.");
+        console.error("Error al actualizar estado del pedido:", err);
+        alert(err.message || "No se pudo actualizar el estado.");
+        // La transacción falló, así que el estado no se guardó: volvemos a
+        // pintar la tabla con los datos reales de Firestore para que el
+        // <select> no quede mostrando un estado que en realidad no se aplicó.
+        applyFilters();
       }
     }
 
@@ -1288,6 +1421,35 @@
       return calcCostoManta() + calcCostoInsumosKit();
     }
 
+    // ---- Ventas reales (manuales + generadas por pedidos entregados) ----
+    // "ventas_kits" es la única colección de ventas: de ahí salen los
+    // ingresos totales y la ganancia acumulada de Finanzas. Una venta
+    // marcada "revertida" (por ejemplo, un pedido que dejó de estar
+    // "entregado") no vuelve a sumar.
+    let ventasCache = [];
+
+    function startVentasListener() {
+      const q = query(collection(db, "ventas_kits"), orderBy("fecha", "desc"));
+      onSnapshot(q, (snapshot) => {
+        ventasCache = [];
+        snapshot.forEach((docSnap) => {
+          ventasCache.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        renderFinTable();
+      });
+    }
+
+    function calcIngresosTotales() {
+      return ventasCache
+        .filter(v => v.revertida !== true)
+        .reduce((sum, v) => {
+          const monto = v.montoTotal !== undefined
+            ? Number(v.montoTotal) || 0
+            : (Number(v.precioUnitario) || 0) * (Number(v.cantidad) || 0);
+          return sum + monto;
+        }, 0);
+    }
+
     function renderFinTable() {
       const precioVenta = Number(configCache.precioVentaLifeBag) || 0;
       if (document.activeElement !== finPrecioVentaInput) {
@@ -1312,6 +1474,20 @@
       finGananciaKitEl.classList.toggle('negativo', ganancia < 0);
       finMargenKitEl.textContent = margen.toFixed(1) + "%";
       finMargenKitEl.classList.toggle('negativo', margen < 0);
+
+      // Ingresos y ganancia reales acumulados (todas las ventas: manuales +
+      // pedidos entregados), no solo la proyección "por unidad" de arriba.
+      const ingresosTotales = calcIngresosTotales();
+      const kitsVendidosNetos = Number(prodCache.kitsVendidos) || 0;
+      const gananciaAcumulada = ingresosTotales - (costoKit * kitsVendidosNetos);
+
+      const finIngresosTotalesEl = document.getElementById('finIngresosTotales');
+      const finGananciaAcumuladaEl = document.getElementById('finGananciaAcumulada');
+      if (finIngresosTotalesEl) finIngresosTotalesEl.textContent = fmtMoney(ingresosTotales);
+      if (finGananciaAcumuladaEl) {
+        finGananciaAcumuladaEl.textContent = fmtMoney(gananciaAcumulada);
+        finGananciaAcumuladaEl.classList.toggle('negativo', gananciaAcumulada < 0);
+      }
 
       const productos = invCache.filter(p => p.activo !== false);
 
@@ -1835,8 +2011,10 @@
       await runTransaction(db, async (transaction) => {
         // 1) Lectura
         const prodSnap = await transaction.get(prodRef);
+        const configSnap = await transaction.get(configRef);
         const disponibles = prodSnap.exists() ? (Number(prodSnap.data().bolsas) || 0) : 0;
         const vendidosActuales = prodSnap.exists() ? (Number(prodSnap.data().kitsVendidos) || 0) : 0;
+        const precioUnitario = configSnap.exists() ? (Number(configSnap.data().precioVentaLifeBag) || 0) : 0;
 
         // 2) Validar
         if (cantidad > disponibles) {
@@ -1849,7 +2027,10 @@
           kitsVendidos: vendidosActuales + cantidad
         });
         transaction.set(ventaRef, {
+          origen: "manual",
           cantidad: cantidad,
+          precioUnitario,
+          montoTotal: precioUnitario * cantidad,
           fecha: serverTimestamp()
         });
       });
@@ -1888,6 +2069,8 @@
     const modalDistrict = document.getElementById("modalDistrict");
     const modalStatus = document.getElementById("modalStatus");
     const modalSave = document.getElementById("modalSave");
+    const modalCantidadKits = document.getElementById("modalCantidadKits");
+    const modalVentaHint = document.getElementById("modalVentaHint");
 
     let editingId = null; // null = modo "agregar"
 
@@ -1895,8 +2078,11 @@
       editingId = null;
       modalTitle.textContent = "Agregar cliente";
       modalSub.textContent = "Se suma a la lista de espera igual que una reserva desde la web.";
+      modalSub.style.display = "block";
+      modalVentaHint.style.display = "none";
       clientForm.reset();
       modalStatus.value = "espera";
+      modalCantidadKits.value = 1;
       modalError.style.display = "none";
       clientModal.classList.add("show");
       modalName.focus();
@@ -1911,7 +2097,13 @@
       modalName.value = order.nombre || "";
       modalPhone.value = order.telefono || "";
       modalDistrict.value = order.distrito || "";
+      modalCantidadKits.value = Math.max(1, parseInt(order.cantidadKits, 10) || 1);
       modalStatus.value = order.estado || "espera";
+
+      const ventaRegistrada = order.ventaRegistrada === true;
+      modalSub.style.display = ventaRegistrada ? "none" : "block";
+      modalVentaHint.style.display = ventaRegistrada ? "block" : "none";
+
       modalError.style.display = "none";
       clientModal.classList.add("show");
       modalName.focus();
@@ -1934,6 +2126,7 @@
       const phone = modalPhone.value.trim();
       const district = modalDistrict.value.trim();
       const status = modalStatus.value;
+      const cantidadKits = Math.max(1, parseInt(modalCantidadKits.value, 10) || 1);
 
       modalSave.disabled = true;
       modalSave.textContent = "Guardando...";
@@ -1941,24 +2134,44 @@
 
       try {
         if (editingId) {
+          // Datos básicos del pedido: esto nunca toca stock ni ingresos.
           await updateDoc(doc(db, "pedidos_lifebag", editingId), {
             nombre: name,
             telefono: phone,
             distrito: district,
-            estado: status
+            cantidadKits
           });
+
+          // El cambio de estado (si lo hubo) pasa por la misma función
+          // transaccional que usa el selector de la tabla, así nunca se
+          // duplica ni se pierde el registro de una venta.
+          const order = ordersCache.find(o => o.id === editingId);
+          const estadoActual = order ? (order.estado || "espera") : "espera";
+          if (status !== estadoActual) {
+            await cambiarEstadoPedido(editingId, status);
+          }
         } else {
-          await addDoc(collection(db, "pedidos_lifebag"), {
+          const newRef = doc(collection(db, "pedidos_lifebag"));
+          await setDoc(newRef, {
             nombre: name,
             telefono: phone,
             distrito: district,
-            estado: status,
+            cantidadKits,
+            estado: "espera",
             fecha: serverTimestamp()
           });
+
+          // Si se carga directamente como "Entregado" (o "Cancelado"), se
+          // aplica el mismo circuito de Producción/Finanzas que si el cambio
+          // se hiciera después desde la tabla.
+          if (status !== "espera") {
+            await cambiarEstadoPedido(newRef.id, status);
+          }
         }
         closeModal();
       } catch (err) {
         console.error("Error al guardar cliente:", err);
+        modalError.textContent = err.message || "No se pudo guardar. Intentá de nuevo.";
         modalError.style.display = "block";
       }
 
