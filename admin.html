@@ -100,6 +100,18 @@
     margin-top:1rem; background:none; border:none; color:var(--text-muted);
     font-size:0.74rem; text-decoration:underline; cursor:pointer;
   }
+  .prod-input{
+    width:100%; text-align:center; font-family:'Fraunces',serif; font-size:2rem;
+    font-weight:700; color:var(--forest); border:1.5px solid var(--border);
+    border-radius:var(--radius-sm); padding:0.5rem; background:var(--cream);
+    outline:none; margin:0.4rem 0 1.1rem; font-variant-numeric:tabular-nums;
+  }
+  .prod-input:focus{border-color:var(--forest); background:#fff;}
+  .prod-count-calc{
+    font-family:'Fraunces',serif; font-size:2.8rem; color:var(--olive); font-weight:700;
+    margin:0.4rem 0 1.1rem;
+  }
+  .prod-card.prod-calc{border-color:var(--olive); background:#f8faf3;}
 
   .prod-summary{
     margin-top:1.2rem; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md);
@@ -318,6 +330,7 @@
       <button class="tab-btn active" data-tab="produccion">🧵 Producción</button>
       <button class="tab-btn" data-tab="pedidos">📋 Lista de espera</button>
       <button class="tab-btn" data-tab="finanzas">💰 Finanzas</button>
+      <button class="tab-btn" data-tab="configuracion">⚙️ Configuración</button>
     </div>
 
     <main>
@@ -326,30 +339,29 @@
       <section id="view-produccion" class="view active">
         <div class="prod-intro">
           <h2>Contadores de producción</h2>
-          <p>Sumá o restá a medida que se van tejiendo cuadraditos, armando mantas y preparando bolsas. Se guarda solo, en tiempo real.</p>
+          <p>Escribí directamente la cantidad de cuadritos, lana y mantas terminadas. Bolsas se sigue sumando con los botones. Todo se guarda solo, en tiempo real.</p>
         </div>
 
         <div class="prod-grid">
           <div class="prod-card">
             <div class="ic">🟪</div>
-            <h3>Cuadraditos</h3>
-            <p class="hint">Tejidos, listos para unir en mantas</p>
-            <div class="prod-count" id="count-cuadraditos">0</div>
-            <div class="prod-buttons">
-              <button class="prod-btn minus" data-field="cuadraditos" data-delta="-1">−</button>
-              <button class="prod-btn plus" data-field="cuadraditos" data-delta="1">+</button>
-            </div>
+            <h3>Cuadritos disponibles</h3>
+            <p class="hint">Tejidos, listos para unir en mantas (la cantidad por manta se configura abajo)</p>
+            <input type="number" class="prod-input" id="input-cuadraditos" min="0" step="1" value="0">
+          </div>
+
+          <div class="prod-card">
+            <div class="ic">🧵</div>
+            <h3>Lana disponible</h3>
+            <p class="hint">En la unidad que uses habitualmente (ovillos, madejas, etc.)</p>
+            <input type="number" class="prod-input" id="input-lanaDisponible" min="0" step="0.01" value="0">
           </div>
 
           <div class="prod-card">
             <div class="ic">🧶</div>
-            <h3>Mantas</h3>
+            <h3>Mantas terminadas</h3>
             <p class="hint">Terminadas y listas para el kit</p>
-            <div class="prod-count" id="count-mantas">0</div>
-            <div class="prod-buttons">
-              <button class="prod-btn minus" data-field="mantas" data-delta="-1">−</button>
-              <button class="prod-btn plus" data-field="mantas" data-delta="1">+</button>
-            </div>
+            <input type="number" class="prod-input" id="input-mantas" min="0" step="1" value="0">
           </div>
 
           <div class="prod-card">
@@ -362,11 +374,18 @@
               <button class="prod-btn plus" data-field="bolsas" data-delta="1">+</button>
             </div>
           </div>
+
+          <div class="prod-card prod-calc">
+            <div class="ic">🧮</div>
+            <h3>Mantas posibles</h3>
+            <p class="hint">El menor entre cuadritos disponibles ÷ 16 y lana disponible ÷ lana por manta</p>
+            <div class="prod-count-calc" id="mantasPosibles">0</div>
+          </div>
         </div>
 
         <div class="prod-summary">
           <span>ℹ️</span>
-          <span>Estos contadores son manuales: reflejan lo que el equipo va cargando a mano, no descuentan stock automáticamente.</span>
+          <span>Cuadritos, lana y mantas terminadas ahora se cargan escribiendo la cantidad. Bolsas sigue siendo manual con botones y no descuenta stock automáticamente.</span>
         </div>
 
         <!-- ===================== INVENTARIO ===================== -->
@@ -567,6 +586,60 @@
         <p style="margin-top:0.8rem; font-size:0.78rem; color:var(--text-muted);">
           Para agregar o eliminar productos usá Producción → Inventario: Finanzas lee esos mismos datos, no crea un inventario aparte.
         </p>
+      </section>
+
+      <!-- ===================== CONFIGURACIÓN ===================== -->
+      <section id="view-configuracion" class="view">
+        <div class="prod-intro">
+          <h2>Configuración general</h2>
+          <p>Estos valores se usan en todos los cálculos del sistema (mantas posibles, ganancias, alertas de stock). Cambiarlos acá los actualiza en todos lados al instante, sin tocar código.</p>
+        </div>
+
+        <h3 style="margin:0 0 0.8rem; font-size:0.95rem; color:var(--forest-deep);">Precios y costos</h3>
+        <div class="prod-grid">
+          <div class="prod-card">
+            <div class="ic">💵</div>
+            <h3>Precio de venta del Life Bag</h3>
+            <p class="hint">Precio del kit completo al público</p>
+            <input type="number" class="prod-input" id="cfg-precioVentaLifeBag" min="0" step="0.01" value="0">
+          </div>
+
+          <div class="prod-card">
+            <div class="ic">🛍️</div>
+            <h3>Costo de la bolsa</h3>
+            <p class="hint">Costo unitario de la bolsa del kit</p>
+            <input type="number" class="prod-input" id="cfg-costoBolsa" min="0" step="0.01" value="0">
+          </div>
+
+          <div class="prod-card">
+            <div class="ic">🧵</div>
+            <h3>Costo de la lana</h3>
+            <p class="hint">Costo por unidad de lana (misma unidad que usás en Producción)</p>
+            <input type="number" class="prod-input" id="cfg-costoLana" min="0" step="0.01" value="0">
+          </div>
+        </div>
+
+        <h3 style="margin:2rem 0 0.8rem; font-size:0.95rem; color:var(--forest-deep);">Cantidades para cálculos</h3>
+        <div class="prod-grid">
+          <div class="prod-card">
+            <div class="ic">🟪</div>
+            <h3>Cuadritos por manta</h3>
+            <p class="hint">Cuántos cuadritos tejidos hacen falta para una manta</p>
+            <input type="number" class="prod-input" id="cfg-cuadritosPorManta" min="1" step="1" value="16">
+          </div>
+
+          <div class="prod-card">
+            <div class="ic">🧶</div>
+            <h3>Lana por manta</h3>
+            <p class="hint">Cuánta lana (misma unidad de Producción) usa cada manta</p>
+            <input type="number" class="prod-input" id="cfg-lanaPorManta" min="0" step="0.01" value="0" placeholder="Ej: 150">
+          </div>
+        </div>
+
+        <div class="prod-summary" style="margin-top:2rem;">
+          <span>ℹ️</span>
+          <span>El costo, la cantidad necesaria por kit y el stock mínimo de <strong>cada producto individual</strong> (tela, broches, etc.) se configuran directamente en Producción → Inventario, al agregar o editar ese producto — ahí ya son 100% editables, sin nada fijo en el código.</span>
+        </div>
       </section>
 
     </main>
@@ -777,28 +850,123 @@
     function startListeners() {
       if (listenersStarted) return;
       listenersStarted = true;
+      startConfigListener();
       startProductionListener();
       startOrdersListener();
       startFinanzasListener();
       startInventoryListener();
     }
 
+    // ---------------- CONFIGURACIÓN ----------------
+    // Todos los valores usados en cálculos viven acá: nada queda fijo en el código.
+    const configRef = doc(db, "configuracion", "valores");
+    let configCache = {};
+
+    const configInputs = {
+      precioVentaLifeBag: document.getElementById('cfg-precioVentaLifeBag'),
+      costoBolsa: document.getElementById('cfg-costoBolsa'),
+      costoLana: document.getElementById('cfg-costoLana'),
+      cuadritosPorManta: document.getElementById('cfg-cuadritosPorManta'),
+      lanaPorManta: document.getElementById('cfg-lanaPorManta')
+    };
+
+    async function startConfigListener() {
+      const snap = await getDoc(configRef);
+      if (!snap.exists()) {
+        // Si ya había una "lana por manta" cargada en Producción (versión anterior),
+        // la migramos acá para no perder el dato.
+        const prodSnap = await getDoc(prodRef);
+        const lanaPorMantaPrevia = prodSnap.exists() ? Number(prodSnap.data().lanaPorManta) || 0 : 0;
+
+        await setDoc(configRef, {
+          precioVentaLifeBag: 0,
+          costoBolsa: 0,
+          costoLana: 0,
+          cuadritosPorManta: 16,
+          lanaPorManta: lanaPorMantaPrevia
+        });
+      }
+
+      onSnapshot(configRef, (docSnap) => {
+        configCache = docSnap.data() || {};
+
+        Object.entries(configInputs).forEach(([field, el]) => {
+          if (el && document.activeElement !== el) {
+            el.value = configCache[field] ?? 0;
+          }
+        });
+
+        actualizarMantasPosibles();
+      });
+    }
+
+    const configDebounce = {};
+    Object.entries(configInputs).forEach(([field, el]) => {
+      if (!el) return;
+      el.addEventListener('input', () => {
+        clearTimeout(configDebounce[field]);
+        configDebounce[field] = setTimeout(async () => {
+          const valor = parseFloat(el.value);
+          try {
+            await setDoc(configRef, { [field]: isNaN(valor) || valor < 0 ? 0 : valor }, { merge: true });
+          } catch (err) {
+            console.error("Error al guardar configuración:", err);
+          }
+        }, 500);
+      });
+    });
+
     // ---------------- PRODUCCIÓN ----------------
     const prodRef = doc(db, "produccion", "contadores");
-    const fields = ["cuadraditos", "mantas", "bolsas"];
+    let prodCache = {};
+
+    function actualizarMantasPosibles() {
+      const cuadritos = Number(prodCache.cuadraditos) || 0;
+      const lanaDisponible = Number(prodCache.lanaDisponible) || 0;
+      const cuadritosPorManta = Number(configCache.cuadritosPorManta) || 0;
+      const lanaPorManta = Number(configCache.lanaPorManta) || 0;
+
+      const porCuadritos = cuadritosPorManta > 0 ? Math.floor(cuadritos / cuadritosPorManta) : 0;
+      const porLana = lanaPorManta > 0 ? Math.floor(lanaDisponible / lanaPorManta) : 0;
+
+      const el = document.getElementById('mantasPosibles');
+      if (el) el.textContent = Math.max(0, Math.min(porCuadritos, porLana));
+    }
+
+    // Campos que se escriben a mano (con debounce) en vez de +/-
+    const prodInputs = {
+      cuadraditos: document.getElementById('input-cuadraditos'),
+      mantas: document.getElementById('input-mantas'),
+      lanaDisponible: document.getElementById('input-lanaDisponible')
+    };
 
     async function startProductionListener() {
-      // Crear el documento si no existe
+      // Crear el documento si no existe, o completar los campos nuevos si faltan
       const snap = await getDoc(prodRef);
       if (!snap.exists()) {
-        await setDoc(prodRef, { cuadraditos: 0, mantas: 0, bolsas: 0 });
+        await setDoc(prodRef, { cuadraditos: 0, mantas: 0, bolsas: 0, lanaDisponible: 0 });
+      } else {
+        const data = snap.data() || {};
+        if (data.lanaDisponible === undefined) {
+          await setDoc(prodRef, { lanaDisponible: 0 }, { merge: true });
+        }
       }
 
       onSnapshot(prodRef, (docSnap) => {
         const data = docSnap.data() || {};
-        fields.forEach(f => {
-          document.getElementById('count-' + f).textContent = data[f] ?? 0;
+        prodCache = data;
+
+        document.getElementById('count-bolsas').textContent = data.bolsas ?? 0;
+
+        // No pisamos el valor mientras la persona está escribiendo en ese campo
+        Object.entries(prodInputs).forEach(([field, el]) => {
+          if (document.activeElement !== el) {
+            el.value = data[field] ?? 0;
+          }
         });
+
+        actualizarMantasPosibles();
+
         // Ventas de kits: reutiliza el mismo documento de contadores
         const disponibles = Number(data.bolsas) || 0;
         const vendidos = Number(data.kitsVendidos) || 0;
@@ -818,6 +986,23 @@
 
     let latestKitsDisponibles = 0;
 
+    // Guardado con debounce para los campos numéricos de Producción
+    const prodInputDebounce = {};
+    Object.entries(prodInputs).forEach(([field, el]) => {
+      el.addEventListener('input', () => {
+        clearTimeout(prodInputDebounce[field]);
+        prodInputDebounce[field] = setTimeout(async () => {
+          const valor = parseFloat(el.value);
+          try {
+            await setDoc(prodRef, { [field]: isNaN(valor) || valor < 0 ? 0 : valor }, { merge: true });
+          } catch (err) {
+            console.error("Error al guardar producción:", err);
+          }
+        }, 500);
+      });
+    });
+
+    // Bolsas sigue siendo con botones +/-
     document.querySelectorAll('.prod-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
         const field = btn.dataset.field;
