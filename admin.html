@@ -230,6 +230,43 @@
   @media(max-width:700px){
     .fin-input, .fin-readonly{font-size:0.82rem; min-width:60px;}
   }
+
+  /* ---------- INVENTARIO ---------- */
+  .inv-section{margin-top:2.2rem; padding-top:2.2rem; border-top:1px solid var(--border);}
+  .inv-intro{margin-bottom:1.2rem; display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; flex-wrap:wrap;}
+  .inv-intro p{color:var(--text-muted); font-size:0.88rem; margin-top:0.3rem; max-width:640px;}
+  .inv-alert{
+    display:none; align-items:flex-start; gap:0.6rem; background:#fdf0d5; color:var(--warning);
+    border:1px solid #f0d9a8; border-radius:var(--radius-md); padding:0.9rem 1.1rem;
+    font-size:0.85rem; font-weight:600; margin-bottom:1.1rem;
+  }
+  .inv-alert.show{display:flex;}
+  .inv-toolbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; gap:0.8rem; flex-wrap:wrap;}
+  .inv-toolbar label{display:flex; align-items:center; gap:0.4rem; font-size:0.82rem; color:var(--text-muted); font-weight:600; cursor:pointer;}
+  table.inv-table{min-width:900px;}
+  .inv-stock{font-weight:800; color:var(--forest-deep);}
+  .inv-stock.low{color:var(--danger);}
+  .badge-kit{
+    display:inline-block; background:#e7efe0; color:var(--olive); font-size:0.7rem; font-weight:800;
+    padding:0.2rem 0.55rem; border-radius:50px; text-transform:uppercase; letter-spacing:0.03em;
+  }
+  .badge-status{
+    display:inline-block; font-size:0.7rem; font-weight:800; padding:0.25rem 0.6rem; border-radius:50px;
+    text-transform:uppercase; letter-spacing:0.03em;
+  }
+  .badge-status.activo{background:#dcefe0; color:var(--success);}
+  .badge-status.inactivo{background:#ece7dd; color:var(--text-muted);}
+  tr.inv-inactive td{opacity:0.55;}
+  .inv-row-actions{display:flex; gap:0.5rem; flex-wrap:wrap; white-space:nowrap;}
+  .btn-buy{
+    background:transparent; border:none; color:var(--olive); font-weight:700;
+    cursor:pointer; padding:0.4rem; font-size:0.8rem;
+  }
+  .btn-buy:hover{text-decoration:underline;}
+  .checkbox-field{display:flex; align-items:center; gap:0.5rem;}
+  .checkbox-field input{width:auto;}
+  .checkbox-field label{margin-bottom:0;}
+  .modal-box.wide{max-width:480px;}
 </style>
 </head>
 <body>
@@ -309,6 +346,49 @@
         <div class="prod-summary">
           <span>ℹ️</span>
           <span>Estos contadores son manuales: reflejan lo que el equipo va cargando a mano, no descuentan stock automáticamente.</span>
+        </div>
+
+        <!-- ===================== INVENTARIO ===================== -->
+        <div class="inv-section">
+          <div class="inv-intro">
+            <div>
+              <h2>Inventario de insumos</h2>
+              <p>Cargá los materiales e insumos que usás para producir. El stock se guarda en Firebase y queda disponible para más adelante conectarlo con Finanzas.</p>
+            </div>
+          </div>
+
+          <div class="inv-alert" id="invLowStockAlert">
+            <span>⚠️</span>
+            <span id="invLowStockText"></span>
+          </div>
+
+          <div class="inv-toolbar">
+            <label><input type="checkbox" id="invShowInactive"> Mostrar desactivados</label>
+            <button type="button" class="btn-add-client" id="invAddBtn">+ Agregar producto</button>
+          </div>
+
+          <div class="table-wrap">
+            <div class="table-scroll">
+              <table class="inv-table">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Marca</th>
+                    <th>Costo unit.</th>
+                    <th>Stock</th>
+                    <th>Mínimo</th>
+                    <th>Unidad</th>
+                    <th>Kit</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="invTableBody">
+                  <tr class="empty-row"><td colspan="9">Cargando inventario...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -437,6 +517,86 @@
     </div>
   </div>
 
+  <!-- ===================== MODAL AGREGAR / EDITAR PRODUCTO (INVENTARIO) ===================== -->
+  <div class="modal-overlay" id="invModal">
+    <div class="modal-box wide">
+      <h3 id="invModalTitle">Agregar producto</h3>
+      <p class="modal-sub">Insumo o material que se usa para producir los kits.</p>
+
+      <div class="modal-error" id="invModalError">No se pudo guardar. Intentá de nuevo.</div>
+
+      <form id="invForm">
+        <div class="modal-field">
+          <label for="invNombre">Nombre del producto</label>
+          <input type="text" id="invNombre" required autocomplete="off">
+        </div>
+        <div class="modal-field">
+          <label for="invMarca">Marca</label>
+          <input type="text" id="invMarca" autocomplete="off">
+        </div>
+        <div class="modal-field">
+          <label for="invCostoUnitario">Costo unitario</label>
+          <input type="number" id="invCostoUnitario" step="0.01" min="0" value="0">
+        </div>
+        <div class="modal-field">
+          <label for="invStockActual">Stock actual</label>
+          <input type="number" id="invStockActual" step="0.01" min="0" value="0">
+        </div>
+        <div class="modal-field">
+          <label for="invStockMinimo">Stock mínimo</label>
+          <input type="number" id="invStockMinimo" step="0.01" min="0" value="0">
+        </div>
+        <div class="modal-field">
+          <label for="invUnidad">Unidad</label>
+          <select id="invUnidad">
+            <option value="unidades">Unidades</option>
+            <option value="metros">Metros</option>
+            <option value="gramos">Gramos</option>
+            <option value="kg">Kilogramos</option>
+            <option value="litros">Litros</option>
+            <option value="ml">Mililitros</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="modal-field checkbox-field">
+          <input type="checkbox" id="invEsKit">
+          <label for="invEsKit">Forma parte del kit Life Bag</label>
+        </div>
+        <div class="modal-field" id="invCantidadKitField" style="display:none;">
+          <label for="invCantidadPorKit">Cantidad necesaria por kit</label>
+          <input type="number" id="invCantidadPorKit" step="0.01" min="0" value="0">
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="modal-cancel" id="invModalCancel">Cancelar</button>
+          <button type="submit" class="modal-save" id="invModalSave">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL REGISTRAR COMPRA ===================== -->
+  <div class="modal-overlay" id="compraModal">
+    <div class="modal-box">
+      <h3>Registrar compra</h3>
+      <p class="modal-sub" id="compraModalSub">Sumá la cantidad comprada al stock actual.</p>
+
+      <div class="modal-error" id="compraModalError">No se pudo registrar la compra.</div>
+
+      <form id="compraForm">
+        <div class="modal-field">
+          <label for="compraCantidad">Cantidad comprada</label>
+          <input type="number" id="compraCantidad" step="0.01" min="0.01" required autocomplete="off">
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="modal-cancel" id="compraModalCancel">Cancelar</button>
+          <button type="submit" class="modal-save" id="compraModalSave">Registrar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script type="module">
     import { db, auth } from "./firebase-config.js";
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -483,6 +643,7 @@
       startProductionListener();
       startOrdersListener();
       startFinanzasListener();
+      startInventoryListener();
     }
 
     // ---------------- PRODUCCIÓN ----------------
@@ -771,6 +932,258 @@
         }
       }
     }
+
+    // ---------------- INVENTARIO ----------------
+    let invCache = [];
+    const invTableBody = document.getElementById("invTableBody");
+    const invAddBtn = document.getElementById("invAddBtn");
+    const invShowInactive = document.getElementById("invShowInactive");
+    const invLowStockAlert = document.getElementById("invLowStockAlert");
+    const invLowStockText = document.getElementById("invLowStockText");
+
+    function startInventoryListener() {
+      const q = query(collection(db, "inventario_productos"), orderBy("orden", "asc"));
+      onSnapshot(q, (snapshot) => {
+        invCache = [];
+        snapshot.forEach((docSnap) => {
+          invCache.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        renderInvTable();
+      });
+    }
+
+    function renderInvTable() {
+      const showInactive = invShowInactive.checked;
+      const visible = invCache.filter(p => showInactive || p.activo !== false);
+
+      // Alerta de stock bajo (solo sobre productos activos)
+      const lowStock = invCache.filter(p => p.activo !== false && Number(p.stockActual) <= Number(p.stockMinimo || 0));
+      if (lowStock.length > 0) {
+        invLowStockText.textContent = `${lowStock.length} producto(s) con stock bajo: ${lowStock.map(p => p.nombre).join(", ")}`;
+        invLowStockAlert.classList.add("show");
+      } else {
+        invLowStockAlert.classList.remove("show");
+      }
+
+      if (visible.length === 0) {
+        invTableBody.innerHTML = `<tr class="empty-row"><td colspan="9">Todavía no hay productos cargados.</td></tr>`;
+        return;
+      }
+
+      invTableBody.innerHTML = visible.map(p => {
+        const stockActual = Number(p.stockActual) || 0;
+        const stockMinimo = Number(p.stockMinimo) || 0;
+        const isLow = stockActual <= stockMinimo;
+        const activo = p.activo !== false;
+        return `
+          <tr data-id="${p.id}" class="${activo ? '' : 'inv-inactive'}">
+            <td>${escapeHtml(p.nombre || '')}</td>
+            <td>${escapeHtml(p.marca || '-')}</td>
+            <td>${fmtMoney(p.costoUnitario)}</td>
+            <td><span class="inv-stock ${isLow ? 'low' : ''}">${stockActual}</span></td>
+            <td>${stockMinimo}</td>
+            <td>${escapeHtml(p.unidad || 'unidades')}</td>
+            <td>${p.esKit ? `<span class="badge-kit">Kit x${Number(p.cantidadPorKit) || 0}</span>` : '-'}</td>
+            <td><span class="badge-status ${activo ? 'activo' : 'inactivo'}">${activo ? 'Activo' : 'Inactivo'}</span></td>
+            <td class="inv-row-actions">
+              <button type="button" class="btn-buy" data-id="${p.id}">Comprar</button>
+              <button type="button" class="btn-edit" data-id="${p.id}">Editar</button>
+              <button type="button" class="btn-edit" data-id="${p.id}" data-toggle="1">${activo ? 'Desactivar' : 'Activar'}</button>
+              <button type="button" class="btn-delete" data-id="${p.id}">Eliminar</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      invTableBody.querySelectorAll('.btn-buy').forEach(btn => {
+        btn.addEventListener('click', (e) => openCompraModal(e.target.dataset.id));
+      });
+      invTableBody.querySelectorAll('.btn-edit[data-toggle]').forEach(btn => {
+        btn.addEventListener('click', (e) => toggleInvActivo(e.target.dataset.id));
+      });
+      invTableBody.querySelectorAll('.btn-edit:not([data-toggle])').forEach(btn => {
+        btn.addEventListener('click', (e) => openInvModal(e.target.dataset.id));
+      });
+      invTableBody.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', (e) => deleteInvProduct(e.target.dataset.id));
+      });
+    }
+
+    invShowInactive.addEventListener('change', renderInvTable);
+
+    async function toggleInvActivo(id) {
+      const p = invCache.find(p => p.id === id);
+      if (!p) return;
+      try {
+        await updateDoc(doc(db, "inventario_productos", id), { activo: !(p.activo !== false) });
+      } catch (err) {
+        console.error("Error al cambiar estado del producto:", err);
+        alert("No se pudo cambiar el estado del producto.");
+      }
+    }
+
+    async function deleteInvProduct(id) {
+      if (confirm("¿Eliminar este producto del inventario? Esta acción no se puede deshacer.")) {
+        try {
+          await deleteDoc(doc(db, "inventario_productos", id));
+        } catch (err) {
+          console.error("Error al eliminar producto:", err);
+          alert("No se pudo eliminar el producto.");
+        }
+      }
+    }
+
+    // ---- Modal agregar / editar producto ----
+    const invModal = document.getElementById("invModal");
+    const invForm = document.getElementById("invForm");
+    const invModalTitle = document.getElementById("invModalTitle");
+    const invModalError = document.getElementById("invModalError");
+    const invNombre = document.getElementById("invNombre");
+    const invMarca = document.getElementById("invMarca");
+    const invCostoUnitario = document.getElementById("invCostoUnitario");
+    const invStockActual = document.getElementById("invStockActual");
+    const invStockMinimo = document.getElementById("invStockMinimo");
+    const invUnidad = document.getElementById("invUnidad");
+    const invEsKit = document.getElementById("invEsKit");
+    const invCantidadKitField = document.getElementById("invCantidadKitField");
+    const invCantidadPorKit = document.getElementById("invCantidadPorKit");
+    const invModalSave = document.getElementById("invModalSave");
+
+    let invEditingId = null;
+
+    function toggleCantidadKitField() {
+      invCantidadKitField.style.display = invEsKit.checked ? "block" : "none";
+    }
+    invEsKit.addEventListener('change', toggleCantidadKitField);
+
+    function openInvModal(id) {
+      invModalError.style.display = "none";
+      if (id) {
+        const p = invCache.find(p => p.id === id);
+        if (!p) return;
+        invEditingId = id;
+        invModalTitle.textContent = "Editar producto";
+        invNombre.value = p.nombre || "";
+        invMarca.value = p.marca || "";
+        invCostoUnitario.value = Number(p.costoUnitario) || 0;
+        invStockActual.value = Number(p.stockActual) || 0;
+        invStockMinimo.value = Number(p.stockMinimo) || 0;
+        invUnidad.value = p.unidad || "unidades";
+        invEsKit.checked = !!p.esKit;
+        invCantidadPorKit.value = Number(p.cantidadPorKit) || 0;
+      } else {
+        invEditingId = null;
+        invModalTitle.textContent = "Agregar producto";
+        invForm.reset();
+        invCostoUnitario.value = 0;
+        invStockActual.value = 0;
+        invStockMinimo.value = 0;
+        invUnidad.value = "unidades";
+        invCantidadPorKit.value = 0;
+      }
+      toggleCantidadKitField();
+      invModal.classList.add("show");
+      invNombre.focus();
+    }
+
+    function closeInvModal() {
+      invModal.classList.remove("show");
+      invEditingId = null;
+    }
+
+    invAddBtn.addEventListener('click', () => openInvModal(null));
+    document.getElementById("invModalCancel").addEventListener('click', closeInvModal);
+    invModal.addEventListener('click', (e) => { if (e.target === invModal) closeInvModal(); });
+
+    invForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        nombre: invNombre.value.trim(),
+        marca: invMarca.value.trim(),
+        costoUnitario: parseFloat(invCostoUnitario.value) || 0,
+        stockActual: parseFloat(invStockActual.value) || 0,
+        stockMinimo: parseFloat(invStockMinimo.value) || 0,
+        unidad: invUnidad.value,
+        esKit: invEsKit.checked,
+        cantidadPorKit: invEsKit.checked ? (parseFloat(invCantidadPorKit.value) || 0) : 0
+      };
+
+      invModalSave.disabled = true;
+      invModalSave.textContent = "Guardando...";
+      invModalError.style.display = "none";
+
+      try {
+        if (invEditingId) {
+          await updateDoc(doc(db, "inventario_productos", invEditingId), payload);
+        } else {
+          await addDoc(collection(db, "inventario_productos"), {
+            ...payload,
+            activo: true,
+            orden: Date.now(),
+            fecha: serverTimestamp()
+          });
+        }
+        closeInvModal();
+      } catch (err) {
+        console.error("Error al guardar producto:", err);
+        invModalError.style.display = "block";
+      }
+
+      invModalSave.disabled = false;
+      invModalSave.textContent = "Guardar";
+    });
+
+    // ---- Modal registrar compra ----
+    const compraModal = document.getElementById("compraModal");
+    const compraForm = document.getElementById("compraForm");
+    const compraModalSub = document.getElementById("compraModalSub");
+    const compraModalError = document.getElementById("compraModalError");
+    const compraCantidad = document.getElementById("compraCantidad");
+    const compraModalSave = document.getElementById("compraModalSave");
+
+    let compraProductoId = null;
+
+    function openCompraModal(id) {
+      const p = invCache.find(p => p.id === id);
+      if (!p) return;
+      compraProductoId = id;
+      compraModalSub.textContent = `Sumar cantidad comprada al stock de "${p.nombre}" (stock actual: ${Number(p.stockActual) || 0} ${p.unidad || ''}).`;
+      compraForm.reset();
+      compraModalError.style.display = "none";
+      compraModal.classList.add("show");
+      compraCantidad.focus();
+    }
+
+    function closeCompraModal() {
+      compraModal.classList.remove("show");
+      compraProductoId = null;
+    }
+
+    document.getElementById("compraModalCancel").addEventListener('click', closeCompraModal);
+    compraModal.addEventListener('click', (e) => { if (e.target === compraModal) closeCompraModal(); });
+
+    compraForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const cantidad = parseFloat(compraCantidad.value);
+      if (isNaN(cantidad) || cantidad <= 0) return;
+
+      compraModalSave.disabled = true;
+      compraModalSave.textContent = "Registrando...";
+      compraModalError.style.display = "none";
+
+      try {
+        await updateDoc(doc(db, "inventario_productos", compraProductoId), {
+          stockActual: increment(cantidad)
+        });
+        closeCompraModal();
+      } catch (err) {
+        console.error("Error al registrar compra:", err);
+        compraModalError.style.display = "block";
+      }
+
+      compraModalSave.disabled = false;
+      compraModalSave.textContent = "Registrar";
+    });
 
     // ---------------- MODAL AGREGAR / EDITAR CLIENTE ----------------
     const clientModal = document.getElementById("clientModal");
