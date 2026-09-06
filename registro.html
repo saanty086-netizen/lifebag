@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crear cuenta | Panel Life Bag</title>
+<link rel="icon" href="assets/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+--cream:#f6f1e6; --forest:#1b4332; --forest-deep:#0f2a1f;
+--rescue:#c1442c; --rescue-deep:#a8371f; --border:#e4dcc6;
+--text:#23291f; --text-muted:#5c6355; --surface:#ffffff;
+--radius-lg:26px; --radius-sm:10px; --shadow:0 18px 40px -18px rgba(15,42,31,0.28);
+}
+*{box-sizing:border-box; margin:0; padding:0; font-family:'Plus Jakarta Sans', sans-serif;}
+body{
+min-height:100vh; background:var(--forest);
+background-image:radial-gradient(circle at 15% 15%, rgba(255,255,255,0.06), transparent 45%),
+radial-gradient(circle at 85% 85%, rgba(255,255,255,0.05), transparent 45%);
+display:flex; align-items:center; justify-content:center; padding:1.5rem; color:var(--text);
+}
+.card{
+background:var(--surface); width:100%; max-width:380px;
+border-radius:var(--radius-lg); padding:2.2rem 1.8rem; box-shadow:var(--shadow);
+text-align:center;
+}
+.card img{height:56px; width:56px; margin:0 auto 0.8rem;}
+h1{font-family:'Fraunces', serif; font-size:1.4rem; color:var(--forest); font-weight:700;}
+p.sub{color:var(--text-muted); font-size:0.85rem; margin-top:0.35rem; margin-bottom:1.6rem; line-height:1.5;}
+.form-group{margin-bottom:1rem; text-align:left;}
+label{display:block; font-size:0.78rem; font-weight:700; margin-bottom:6px; color:var(--forest-deep);}
+input{
+width:100%; padding:0.8rem 1rem; border-radius:var(--radius-sm);
+border:1.5px solid var(--border); font-size:0.94rem; outline:none;
+background:var(--cream); transition:all 0.2s ease;
+}
+input:focus{border-color:var(--forest); background:#fff; box-shadow:0 0 0 3px rgba(27,67,50,0.12);}
+button{
+width:100%; background:var(--forest); color:#fff; border:none;
+padding:0.9rem; border-radius:50px; font-size:0.94rem; font-weight:700;
+cursor:pointer; margin-top:0.5rem; transition:background 0.2s;
+}
+button:hover{background:var(--forest-deep);}
+button:disabled{opacity:0.65; cursor:not-allowed;}
+.google-btn{
+background:#fff; color:var(--forest-deep); border:1.5px solid var(--border);
+display:flex; align-items:center; justify-content:center; gap:0.6rem;
+margin-top:0;
+}
+.google-btn:hover{background:var(--cream);}
+.google-btn img{height:18px; width:18px; margin:0;}
+.divider{
+display:flex; align-items:center; gap:0.7rem; margin:1.2rem 0;
+color:var(--text-muted); font-size:0.75rem; text-transform:uppercase; letter-spacing:0.04em;
+}
+.divider::before, .divider::after{content:""; flex:1; height:1px; background:var(--border);}
+.error{
+display:none; background:#fbe6e2; color:var(--rescue-deep); font-size:0.8rem;
+padding:0.65rem 0.85rem; border-radius:var(--radius-sm); margin-bottom:1rem; font-weight:600; text-align:left;
+}
+.success{
+display:none; background:#e5efe8; color:var(--forest-deep); font-size:0.8rem;
+padding:0.65rem 0.85rem; border-radius:var(--radius-sm); margin-bottom:1rem; font-weight:600; text-align:left;
+}
+.google-note{
+font-size:0.78rem; color:var(--text-muted); text-align:left; margin-bottom:1rem; line-height:1.4;
+}
+.back{display:inline-block; margin-top:1.4rem; font-size:0.8rem; color:var(--text-muted); text-decoration:none;}
+.back:hover{color:var(--forest);}
+</style>
+</head>
+<body>
+<div class="card">
+<img src="assets/logo.png" alt="Life Bag">
+<h1>Sumate al equipo</h1>
+<p class="sub">Creá tu cuenta con Google o con tu correo. Un administrador va a revisar tu solicitud antes de que puedas ingresar al panel.</p>
+
+<div class="error" id="errorMsg"></div>
+<div class="success" id="successMsg"></div>
+
+<!-- Paso único con Google, o formulario con correo -->
+<div id="paso1">
+  <button type="button" id="googleBtn" class="google-btn">
+    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="">
+    Registrarme con Google
+  </button>
+
+  <div class="divider">o con tu correo</div>
+
+  <form id="registroForm">
+    <div class="form-group">
+      <label for="nombre">Nombre completo</label>
+      <input type="text" id="nombre" placeholder="Tu nombre y apellido" required>
+    </div>
+    <div class="form-group">
+      <label for="email">Correo electrónico</label>
+      <input type="email" id="email" placeholder="tu@correo.com" required autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label for="password">Contraseña</label>
+      <input type="password" id="password" placeholder="Mínimo 6 caracteres" required minlength="6" autocomplete="new-password">
+    </div>
+    <div class="form-group">
+      <label for="password2">Repetir contraseña</label>
+      <input type="password" id="password2" placeholder="Repetí la contraseña" required minlength="6" autocomplete="new-password">
+    </div>
+    <button type="submit" id="registroBtn">Crear cuenta</button>
+  </form>
+</div>
+
+<!-- Paso 2: aparece después de elegir Google -->
+<form id="googleForm" style="display:none;">
+  <p class="google-note">Ya validamos tu cuenta de Google. Ahora poné un nombre y una contraseña para tu perfil — así después vas a poder entrar tanto con Google como con tu correo y contraseña.</p>
+  <div class="form-group">
+    <label for="gNombre">Nombre completo</label>
+    <input type="text" id="gNombre" placeholder="Tu nombre y apellido" required>
+  </div>
+  <div class="form-group">
+    <label for="gPassword">Creá una contraseña</label>
+    <input type="password" id="gPassword" placeholder="Mínimo 6 caracteres" required minlength="6" autocomplete="new-password">
+  </div>
+  <div class="form-group">
+    <label for="gPassword2">Repetir contraseña</label>
+    <input type="password" id="gPassword2" placeholder="Repetí la contraseña" required minlength="6" autocomplete="new-password">
+  </div>
+  <button type="submit" id="googleFormBtn">Finalizar registro</button>
+</form>
+
+<a href="login" class="back">← Ya tengo cuenta, volver a ingresar</a>
+</div>
+
+<script type="module">
+import { auth, db } from "./firebase-config.js";
+import {
+  createUserWithEmailAndPassword,
+  signOut,
+  GoogleAuthProvider,
+  signInWithPopup,
+  linkWithCredential,
+  EmailAuthProvider
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const errorMsg = document.getElementById('errorMsg');
+const successMsg = document.getElementById('successMsg');
+
+function mostrarError(texto) {
+  successMsg.style.display = "none";
+  errorMsg.textContent = texto;
+  errorMsg.style.display = "block";
+}
+
+function mostrarExito(texto) {
+  errorMsg.style.display = "none";
+  successMsg.textContent = texto;
+  successMsg.style.display = "block";
+}
+
+function ocultarMensajes() {
+  errorMsg.style.display = "none";
+  successMsg.style.display = "none";
+}
+
+// ---------- Registro con correo y contraseña ----------
+const messages = {
+  'auth/email-already-in-use': 'Ese correo ya tiene una cuenta. Probá ingresar en vez de registrarte.',
+  'auth/invalid-email': 'El correo ingresado no es válido.',
+  'auth/weak-password': 'La contraseña es muy débil, usá al menos 6 caracteres.'
+};
+
+const form = document.getElementById('registroForm');
+const btn = document.getElementById('registroBtn');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  ocultarMensajes();
+
+  const nombre = document.getElementById('nombre').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const password2 = document.getElementById('password2').value;
+
+  if (password !== password2) {
+    mostrarError('Las contraseñas no coinciden.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Creando cuenta...";
+
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+
+    await setDoc(doc(db, "usuarios", cred.user.uid), {
+      email: email,
+      nombre: nombre,
+      estado: "pendiente",
+      rol: "usuario",
+      creadoEn: serverTimestamp()
+    });
+
+    await signOut(auth);
+
+    mostrarExito('¡Listo! Tu cuenta fue creada. Un administrador va a revisar tu solicitud antes de darte acceso.');
+    form.reset();
+  } catch (err) {
+    console.error(err);
+    mostrarError(messages[err.code] || "No se pudo crear la cuenta. Probá de nuevo.");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Crear cuenta";
+  }
+});
+
+// ---------- Registro con Google ----------
+const googleBtn = document.getElementById('googleBtn');
+const paso1 = document.getElementById('paso1');
+const googleForm = document.getElementById('googleForm');
+const googleFormBtn = document.getElementById('googleFormBtn');
+let googleUser = null;
+
+googleBtn.addEventListener('click', async () => {
+  ocultarMensajes();
+  const provider = new GoogleAuthProvider();
+
+  try {
+    const result = await signInWithPopup(auth, provider);
+    googleUser = result.user;
+
+    // Si esa cuenta de Google ya está registrada, no la dejamos duplicar
+    const ref = doc(db, "usuarios", googleUser.uid);
+    const snap = await getDoc(ref);
+
+    if (snap.exists()) {
+      await signOut(auth);
+      googleUser = null;
+      mostrarError('Ese correo de Google ya tiene una cuenta registrada. Usá "Ya tengo cuenta" para ingresar.');
+      return;
+    }
+
+    // Mostramos el paso 2 para pedir nombre y contraseña
+    paso1.style.display = "none";
+    googleForm.style.display = "block";
+  } catch (err) {
+    console.error(err);
+    mostrarError("No se pudo continuar con Google. Probá de nuevo.");
+  }
+});
+
+googleForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!googleUser) return;
+
+  const nombre = document.getElementById('gNombre').value.trim();
+  const password = document.getElementById('gPassword').value;
+  const password2 = document.getElementById('gPassword2').value;
+
+  if (password !== password2) {
+    mostrarError('Las contraseñas no coinciden.');
+    return;
+  }
+
+  googleFormBtn.disabled = true;
+  googleFormBtn.textContent = "Guardando...";
+
+  try {
+    // Vinculamos correo + contraseña a la misma cuenta de Google
+    const credential = EmailAuthProvider.credential(googleUser.email, password);
+    await linkWithCredential(googleUser, credential);
+
+    await setDoc(doc(db, "usuarios", googleUser.uid), {
+      email: googleUser.email,
+      nombre: nombre,
+      estado: "pendiente",
+      rol: "usuario",
+      creadoEn: serverTimestamp()
+    });
+
+    await signOut(auth);
+
+    paso1.style.display = "block";
+    googleForm.style.display = "none";
+    googleForm.reset();
+    googleUser = null;
+
+    mostrarExito('¡Listo! Tu cuenta quedó creada con Google y con contraseña. Un administrador va a revisar tu solicitud.');
+  } catch (err) {
+    console.error(err);
+    let texto = "No se pudo completar el registro. Probá de nuevo.";
+    if (err.code === 'auth/email-already-in-use' || err.code === 'auth/credential-already-in-use') {
+      texto = "Ese correo ya tiene una contraseña configurada en otra cuenta.";
+    } else if (err.code === 'auth/weak-password') {
+      texto = "La contraseña es muy débil, usá al menos 6 caracteres.";
+    }
+    mostrarError(texto);
+  } finally {
+    googleFormBtn.disabled = false;
+    googleFormBtn.textContent = "Finalizar registro";
+  }
+});
+</script>
+</body>
+</html>
