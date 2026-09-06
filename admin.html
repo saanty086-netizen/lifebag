@@ -252,6 +252,9 @@
   @media(min-width:720px){ .cap-grid{grid-template-columns:repeat(3,1fr);} }
   .cap-grid-2{display:grid; grid-template-columns:1fr; gap:1rem; margin-bottom:1.2rem;}
   @media(min-width:720px){ .cap-grid-2{grid-template-columns:repeat(2,1fr);} }
+  .cap-grid-4{display:grid; grid-template-columns:1fr; gap:1rem; margin-bottom:1.2rem;}
+  @media(min-width:600px){ .cap-grid-4{grid-template-columns:repeat(2,1fr);} }
+  @media(min-width:1000px){ .cap-grid-4{grid-template-columns:repeat(4,1fr);} }
   .cap-card{
     background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg);
     padding:1.2rem 1.3rem; box-shadow:var(--shadow-sm);
@@ -494,29 +497,49 @@
           <p>Usa los mismos productos cargados en Producción → Inventario (sin duplicar stock ni productos). Desde acá podés ajustar el costo unitario, si el producto forma parte del kit, la cantidad por kit y el precio de venta del Life Bag.</p>
         </div>
 
-        <div class="cap-grid-2">
+        <div class="cap-grid-4">
           <div class="cap-card">
-            <div class="cap-label">Precio de venta del Life Bag</div>
+            <div class="cap-label">Kits posibles</div>
+            <div class="cap-value" id="finKitsPosibles">—</div>
+            <div class="cap-sub">Según el stock actual de insumos</div>
+          </div>
+          <div class="cap-card">
+            <div class="cap-label">Kits armados</div>
+            <div class="cap-value" id="finKitsArmados">0</div>
+            <div class="cap-sub">Total armado (disponibles + vendidos)</div>
+          </div>
+          <div class="cap-card">
+            <div class="cap-label">Kits disponibles</div>
+            <div class="cap-value" id="finKitsDisponibles">0</div>
+            <div class="cap-sub">Armados y listos para vender</div>
+          </div>
+          <div class="cap-card">
+            <div class="cap-label">Kits vendidos</div>
+            <div class="cap-value" id="finKitsVendidos">0</div>
+            <div class="cap-sub">Acumulado histórico</div>
+          </div>
+        </div>
+
+        <div class="cap-grid-4">
+          <div class="cap-card">
+            <div class="cap-label">Costo por kit</div>
+            <div class="cap-value" id="finCostoKit">$0</div>
+            <div class="cap-sub">Costo unitario × cantidad por kit de cada insumo</div>
+          </div>
+          <div class="cap-card">
+            <div class="cap-label">Precio de venta</div>
             <input type="number" id="finPrecioVenta" step="0.01" min="0" value="45000"
               style="width:100%; border:none; background:transparent; outline:none; font-family:'Fraunces',serif;
               font-size:2rem; font-weight:700; color:var(--forest); margin-top:0.3rem; padding:0;">
             <div class="cap-sub">Se guarda solo, en tiempo real</div>
           </div>
           <div class="cap-card">
-            <div class="cap-label">Costo total de fabricar 1 kit</div>
-            <div class="cap-value" id="finCostoKit">$0</div>
-            <div class="cap-sub">Suma de costo unitario × cantidad por kit de cada insumo marcado</div>
-          </div>
-        </div>
-
-        <div class="cap-grid-2">
-          <div class="cap-card">
             <div class="cap-label">Ganancia por kit</div>
             <div class="cap-value" id="finGananciaKit">$0</div>
-            <div class="cap-sub">Precio de venta − costo total del kit</div>
+            <div class="cap-sub">Precio de venta − costo por kit</div>
           </div>
           <div class="cap-card">
-            <div class="cap-label">Margen de ganancia</div>
+            <div class="cap-label">Margen</div>
             <div class="cap-value" id="finMargenKit">0%</div>
             <div class="cap-sub">Ganancia ÷ precio de venta</div>
           </div>
@@ -782,6 +805,14 @@
         document.getElementById('kitsDisponibles').textContent = disponibles;
         document.getElementById('kitsVendidosAcum').textContent = vendidos;
         latestKitsDisponibles = disponibles;
+
+        // Mismos valores, reflejados también en las tarjetas de Finanzas
+        const finKitsDisponiblesEl = document.getElementById('finKitsDisponibles');
+        const finKitsVendidosEl = document.getElementById('finKitsVendidos');
+        const finKitsArmadosEl = document.getElementById('finKitsArmados');
+        if (finKitsDisponiblesEl) finKitsDisponiblesEl.textContent = disponibles;
+        if (finKitsVendidosEl) finKitsVendidosEl.textContent = vendidos;
+        if (finKitsArmadosEl) finKitsArmadosEl.textContent = disponibles + vendidos;
       });
     }
 
@@ -1101,6 +1132,8 @@
         capKits.textContent = "—";
         capLimitante.textContent = "—";
         capLimitanteSub.textContent = "Marcá productos como \"parte del kit\" para ver este cálculo.";
+        const finKitsPosiblesEl0 = document.getElementById('finKitsPosibles');
+        if (finKitsPosiblesEl0) finKitsPosiblesEl0.textContent = "—";
         return;
       }
 
@@ -1121,6 +1154,8 @@
       capLimitanteSub.textContent = limitante
         ? `Stock: ${Number(limitante.stockActual) || 0} ${limitante.unidad || ''} · alcanza para ${kits} kit(s)`
         : "";
+      const finKitsPosiblesEl = document.getElementById('finKitsPosibles');
+      if (finKitsPosiblesEl) finKitsPosiblesEl.textContent = kits;
     }
 
     function renderInvTable() {
