@@ -10,7 +10,7 @@ Sitio estático y panel del equipo de Life Bag, un microemprendimiento escolar d
 - `login.html`, `registro.html`, `access.js`: acceso y solicitud de ingreso al equipo.
 - `admin.html`: producción, inventario, pedidos y finanzas.
 - `admin-solicitudes.html`: aprobación de cuentas y permisos por área.
-- `panel-ui.css`: estilos de acceso, panel y privacidad.
+- `panel-ui.css`: estilos de acceso y privacidad. El panel y la página de equipo llevan sus estilos dentro de su HTML.
 - `firebase-config.js`: conexión al proyecto Firebase existente.
 - `firestore.rules`: reglas de acceso que deben configurarse en Firestore.
 - `assets/`: fotos y logos originales, fuentes con sus licencias e iconos Lucide fijados a la versión 0.468.0. Las fotos de la bolsa se conservan sin modificaciones.

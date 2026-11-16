@@ -1,100 +1,142 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-AR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Solicitudes y permisos | Life Bag</title>
+<meta name="theme-color" content="#183f32">
+<title>Equipo y permisos | Life Bag</title>
 <link rel="icon" href="assets/logo.png">
 <link rel="stylesheet" href="fonts.css">
-
-
-
+<script src="assets/vendor/lucide.min.js"></script>
 <style>
 :root{
---cream:#f6f1e6; --forest:#1b4332; --forest-deep:#0f2a1f;
---rescue:#c1442c; --rescue-deep:#a8371f; --border:#e4dcc6;
---text:#23291f; --text-muted:#5c6355; --surface:#ffffff;
---radius-lg:26px; --radius-sm:10px; --shadow:0 18px 40px -18px rgba(15,42,31,0.28);
+  --cream:#faf8f2; --cream-deep:#f1efe5; --paper:#fffefa;
+  --forest:#183f32; --forest-deep:#102f26; --forest-soft:#e5ede7;
+  --olive:#616344; --rescue:#b94e32; --rescue-deep:#983c25; --rescue-soft:#f8e7e0;
+  --warning:#9a6511; --warning-soft:#faf0da;
+  --border:#e5e3d8; --border-strong:#d4d2c4; --text:#283b32; --text-muted:#66726a;
+  --shadow:0 1px 2px rgba(16,47,38,.04), 0 10px 28px -16px rgba(16,47,38,.16);
 }
-*{box-sizing:border-box; margin:0; padding:0; font-family:'Plus Jakarta Sans', sans-serif;}
-body{
-min-height:100vh; background:var(--forest);
-background-image:radial-gradient(circle at 15% 15%, rgba(255,255,255,0.06), transparent 45%),
-radial-gradient(circle at 85% 85%, rgba(255,255,255,0.05), transparent 45%);
-padding:2.5rem 1.2rem; color:var(--text);
-}
-.wrap{max-width:720px; margin:0 auto;}
-h1{font-family:'Fraunces', serif; color:#fff; font-size:1.6rem; text-align:center;}
-p.sub{color:var(--cream); opacity:0.85; text-align:center; font-size:0.85rem; margin-top:0.35rem; margin-bottom:1.6rem;}
-h2{font-family:'Fraunces', serif; color:#fff; font-size:1.1rem; margin:2rem 0 0.8rem; text-align:center;}
-.panel{
-background:var(--surface); border-radius:var(--radius-lg);
-padding:1.5rem; box-shadow:var(--shadow);
-}
-.fila{
-display:flex; align-items:center; justify-content:space-between; gap:12px;
-padding:1rem 0.3rem; border-bottom:1px solid var(--border);
-flex-wrap:wrap;
-}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{font-family:'Plus Jakarta Sans', system-ui, sans-serif; background:var(--cream); color:var(--text); min-height:100vh; -webkit-font-smoothing:antialiased; line-height:1.5;}
+button,input{font:inherit; color:inherit;}
+button{cursor:pointer;}
+button:disabled{opacity:.5; cursor:not-allowed;}
+[hidden]{display:none!important;}
+:focus-visible{outline:3px solid var(--rescue); outline-offset:3px;}
+h1,h2{font-family:'Fraunces', Georgia, serif; color:var(--forest); font-weight:500; letter-spacing:-.03em; line-height:1.15;}
+.i,.lucide{width:18px; height:18px; stroke-width:1.8; flex:none;}
+
+.topbar{background:var(--forest); color:#fff;}
+.topbar-inner{max-width:880px; margin:0 auto; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px;}
+.brand{display:flex; align-items:center; gap:10px; color:#fff; text-decoration:none;}
+.brand img{width:38px; height:38px; border-radius:50%; background:#fff;}
+.brand strong{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:1.15rem; letter-spacing:-.03em;}
+.back-panel{display:inline-flex; align-items:center; gap:8px; color:#fff; text-decoration:none; font-size:.84rem; font-weight:600; border:1px solid rgba(255,255,255,.25); border-radius:10px; padding:8px 14px;}
+.back-panel:hover{background:rgba(255,255,255,.1);}
+
+.wrap{max-width:880px; margin:0 auto; padding:36px 20px 64px;}
+.eyebrow{display:inline-flex; font-size:.7rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--olive); margin-bottom:8px;}
+h1{font-size:2.1rem;}
+.sub{color:var(--text-muted); font-size:.92rem; margin-top:6px; max-width:560px;}
+.team-error{display:flex; gap:10px; align-items:center; background:var(--rescue-soft); color:var(--rescue-deep); border:1px solid #ecc3b5; border-radius:13px; padding:13px 16px; font-size:.84rem; font-weight:600; margin-top:20px;}
+
+.group{margin-top:36px;}
+.group-head{display:flex; align-items:center; gap:10px; margin-bottom:12px;}
+.group-head h2{font-size:1.3rem;}
+.group-head .i,.group-head .lucide{color:var(--olive);}
+.group-head p{color:var(--text-muted); font-size:.82rem; margin-left:auto;}
+.panel{background:var(--paper); border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow); padding:4px 20px;}
+.panel.quiet{box-shadow:none; background:transparent; border-style:dashed;}
+
+.fila{display:flex; align-items:center; justify-content:space-between; gap:14px; padding:16px 0; border-bottom:1px solid var(--border); flex-wrap:wrap;}
 .fila:last-child{border-bottom:none;}
-.correo{font-weight:700; color:var(--forest-deep); font-size:0.9rem;}
-.fecha{font-size:0.72rem; color:var(--text-muted); margin-top:2px;}
-.botones{display:flex; gap:8px; flex-shrink:0;}
-button{
-border:none; border-radius:50px; padding:0.55rem 1rem;
-font-size:0.78rem; font-weight:700; cursor:pointer;
-}
+.persona{display:flex; align-items:center; gap:12px; min-width:0; flex:1 1 220px;}
+.avatar{width:40px; height:40px; border-radius:50%; display:grid; place-items:center; background:var(--forest-soft); color:var(--forest); font-weight:700; font-size:.9rem; flex:none; text-transform:uppercase;}
+.pendiente .avatar{background:var(--warning-soft); color:var(--warning);}
+.rechazado .avatar{background:var(--cream-deep); color:var(--text-muted);}
+.persona>div{min-width:0;}
+.correo{font-weight:700; color:var(--forest-deep); font-size:.92rem; overflow-wrap:anywhere;}
+.fecha{font-size:.76rem; color:var(--text-muted); margin-top:1px; overflow-wrap:anywhere;}
+
+.botones,.permisos{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+.permisos-label{font-size:.74rem; color:var(--text-muted); font-weight:600; margin-right:2px;}
+.botones button,.permisos>button{display:inline-flex; align-items:center; gap:6px; border:1px solid transparent; border-radius:10px; padding:0 14px; min-height:38px; font-size:.82rem; font-weight:700;}
 .aprobar{background:var(--forest); color:#fff;}
-.aprobar:hover{background:var(--forest-deep);}
-.rechazar{background:#fbe6e2; color:var(--rescue-deep);}
-.rechazar:hover{background:#f6d3cc;}
-.eliminar{background:transparent; color:var(--rescue-deep); border:1.5px solid #f0c4bb;}
-.eliminar:hover{background:#fbe6e2;}
-.vacio{text-align:center; color:var(--text-muted); padding:2.5rem 0; font-size:0.85rem;}
-.bloqueado{
-color:#fff; text-align:center; padding-top:4rem; font-size:0.95rem;
+.aprobar:hover:not(:disabled){background:var(--forest-deep);}
+.rechazar{background:var(--paper); color:var(--text); border-color:var(--border-strong)!important;}
+.rechazar:hover:not(:disabled){background:var(--cream-deep);}
+.eliminar{background:transparent; color:var(--text-muted); width:38px; padding:0!important; justify-content:center;}
+.eliminar:hover:not(:disabled){background:var(--rescue-soft); color:var(--rescue);}
+.eliminar .i,.eliminar .lucide{width:17px; height:17px;}
+
+.permiso-item{position:relative; display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border-strong); border-radius:999px; padding:7px 13px; font-size:.8rem; font-weight:600; color:var(--text-muted); cursor:pointer; user-select:none; transition:background .15s, color .15s, border-color .15s;}
+.permiso-item input{position:absolute; opacity:0; inset:0; cursor:pointer;}
+.permiso-item .i,.permiso-item .lucide{width:15px; height:15px;}
+.permiso-item .on{display:none;}
+.permiso-item:has(input:checked){background:var(--forest); border-color:var(--forest); color:#fff;}
+.permiso-item:has(input:checked) .on{display:inline;}
+.permiso-item:has(input:checked) .off{display:none;}
+.permiso-item:has(input:focus-visible){outline:3px solid var(--rescue); outline-offset:2px;}
+.permiso-item:hover{border-color:var(--forest);}
+
+.vacio{display:flex; align-items:center; justify-content:center; gap:8px; text-align:center; color:var(--text-muted); padding:28px 0; font-size:.86rem; flex-wrap:wrap;}
+.vacio .retry{border:1px solid var(--border-strong); background:var(--paper); border-radius:9px; padding:6px 12px; font-weight:700; font-size:.8rem;}
+.bloqueado{max-width:420px; margin:80px auto; text-align:center; padding:32px 24px; background:var(--paper); border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow);}
+.bloqueado h1{font-size:1.5rem; margin-bottom:8px;}
+.bloqueado p{color:var(--text-muted); font-size:.9rem; margin-bottom:20px;}
+.bloqueado a{display:inline-flex; align-items:center; gap:8px; background:var(--forest); color:#fff; text-decoration:none; border-radius:10px; padding:11px 18px; font-weight:700; font-size:.86rem;}
+
+@media (max-width:600px){
+  .wrap{padding:26px 16px 48px;}
+  h1{font-size:1.75rem;}
+  .panel{padding:2px 16px;}
+  .group-head p{display:none;}
+  .botones,.permisos{width:100%;}
+  .botones .aprobar,.botones .rechazar{flex:1; justify-content:center;}
+  .back-panel span{display:none;}
+  .back-panel{padding:8px 10px;}
 }
-.bloqueado a{color:var(--cream);}
-.permisos{
-display:flex; gap:14px; flex-wrap:wrap; flex-shrink:0;
-}
-.permiso-item{
-display:flex; align-items:center; gap:6px; font-size:0.78rem; color:var(--forest-deep); font-weight:600;
-}
-.permiso-item input{width:16px; height:16px; accent-color:var(--forest); cursor:pointer;}
-.guardado{
-font-size:0.7rem; color:var(--forest); font-weight:700; opacity:0; transition:opacity 0.3s;
-margin-left:6px;
-}
-.guardado.show{opacity:1;}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;}}
 </style>
-<link rel="stylesheet" href="panel-ui.css">
 </head>
 <body class="team-page">
 
-<div class="wrap" id="app" style="display:none;">
-  <a class="back-panel" href="admin.html">← Volver al panel</a>
-  <p id="teamError" class="team-error" role="alert" hidden></p>
-  <h1>Equipo Life Bag</h1>
-  <p class="sub">Aprobá solicitudes y asigná qué área puede editar cada persona</p>
+<div id="app" style="display:none;">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="admin.html"><img src="assets/logo.png" alt=""><strong>Life Bag</strong></a>
+      <a class="back-panel" href="admin.html"><i data-lucide="arrow-left" class="i"></i><span>Volver al panel</span></a>
+    </div>
+  </header>
 
-  <h2>Solicitudes pendientes</h2>
-  <div class="panel">
-    <div id="listaPendientes"></div>
-  </div>
+  <div class="wrap">
+    <span class="eyebrow">Administración</span>
+    <h1>Equipo y permisos</h1>
+    <p class="sub">Quién puede entrar al panel y qué puede editar cada persona.</p>
+    <p id="teamError" class="team-error" role="alert" hidden></p>
 
-  <h2>Solicitudes rechazadas</h2>
-  <div class="panel"><div id="listaRechazados"></div></div>
+    <section class="group">
+      <div class="group-head"><i data-lucide="user-plus" class="i"></i><h2>Esperando aprobación</h2><p>Se registraron y todavía no pueden entrar.</p></div>
+      <div class="panel"><div id="listaPendientes"></div></div>
+    </section>
 
-  <h2>Usuarios aprobados</h2>
-  <div class="panel">
-    <div id="listaAprobados"></div>
+    <section class="group">
+      <div class="group-head"><i data-lucide="users" class="i"></i><h2>Equipo</h2><p>Tocá un área para dejarla editar.</p></div>
+      <div class="panel"><div id="listaAprobados"></div></div>
+    </section>
+
+    <section class="group">
+      <div class="group-head"><i data-lucide="user-x" class="i"></i><h2>Rechazados</h2></div>
+      <div class="panel quiet"><div id="listaRechazados"></div></div>
+    </section>
   </div>
 </div>
 
 <div id="bloqueado" class="bloqueado" style="display:none;">
-  Esta sección es solo para administradores.<br>
-  <a href="login.html">← Volver a ingresar</a>
+  <h1>Solo para administradores</h1>
+  <p>Ingresá con una cuenta de administrador para ver esta página.</p>
+  <a href="login.html"><i data-lucide="log-in" class="i"></i>Ir a ingresar</a>
 </div>
 
 <script type="module">
@@ -110,8 +152,9 @@ const areas = { pedidos: 'Lista de espera', produccion: 'Producción', finanzas:
 function showError(error) {
   console.error('No se pudo actualizar el equipo:', error);
   errorMessage.hidden = false;
-  errorMessage.textContent = 'No se pudo completar la operación. Revisá la conexión y los permisos e intentá de nuevo.';
+  errorMessage.textContent = 'No se pudo guardar el cambio. Revisá la conexión y probá de nuevo.';
 }
+window.lucide?.createIcons();
 onAuthStateChanged(auth, user => {
   app.style.display = isAdmin(user) ? 'block' : 'none';
   blocked.style.display = isAdmin(user) ? 'none' : 'block';
@@ -129,7 +172,7 @@ async function loadUsers(state) {
     if (!isAdmin(auth.currentUser)) return;
     const users = result.docs.filter(item => !ADMIN_EMAILS.includes(String(item.data().email || '').toLowerCase()));
     if (!users.length) {
-      target.innerHTML = '<div class="vacio">No hay cuentas en esta sección.</div>';
+      target.innerHTML = `<div class="vacio">${{ pendiente: 'No hay solicitudes nuevas.', aprobado: 'Todavía no aprobaste a nadie.', rechazado: 'No hay solicitudes rechazadas.' }[state]}</div>`;
       return;
     }
     target.innerHTML = users.map(item => {
@@ -137,10 +180,16 @@ async function loadUsers(state) {
       const id = escapeHtml(item.id);
       const email = escapeHtml(data.email);
       const name = escapeHtml(data.nombre || data.email);
+      const initial = escapeHtml(String(data.nombre || data.email || '?').trim().charAt(0));
       const date = data.creadoEn?.toDate ? data.creadoEn.toDate().toLocaleDateString('es-AR') : '';
-      const permissions = Object.entries(areas).map(([area, label]) => `<label class="permiso-item"><input type="checkbox" data-uid="${id}" data-area="${area}" ${data.permisos?.[area] === true ? 'checked' : ''}>${label}</label>`).join('');
-      return `<div class="fila"><div><div class="correo">${name}</div><div class="fecha">${email}${date ? ' · ' + escapeHtml(date) : ''}</div></div><div class="${state === 'aprobado' ? 'permisos' : 'botones'}">${state === 'aprobado' ? permissions : `<button class="aprobar" data-id="${id}" data-state="aprobado">Aprobar</button>${state === 'pendiente' ? `<button class="rechazar" data-id="${id}" data-state="rechazado">Rechazar</button>` : ''}`}<button class="eliminar" data-id="${id}" data-correo="${email}">Eliminar</button></div></div>`;
+      const remove = `<button type="button" class="eliminar" data-id="${id}" data-correo="${email}" title="Quitar acceso" aria-label="Quitarle el acceso a ${name}"><i data-lucide="trash-2" class="i"></i></button>`;
+      const permissions = Object.entries(areas).map(([area, label]) => `<label class="permiso-item"><input type="checkbox" data-uid="${id}" data-area="${area}" ${data.permisos?.[area] === true ? 'checked' : ''}><i data-lucide="check" class="i on"></i><i data-lucide="plus" class="i off"></i>${label}</label>`).join('');
+      const actions = state === 'aprobado'
+        ? `<div class="permisos"><span class="permisos-label">Puede editar:</span>${permissions}${remove}</div>`
+        : `<div class="botones"><button type="button" class="aprobar" data-id="${id}" data-state="aprobado"><i data-lucide="check" class="i"></i>Aprobar</button>${state === 'pendiente' ? `<button type="button" class="rechazar" data-id="${id}" data-state="rechazado">Rechazar</button>` : ''}${remove}</div>`;
+      return `<div class="fila ${state}"><div class="persona"><span class="avatar" aria-hidden="true">${initial}</span><div><div class="correo">${name}</div><div class="fecha">${email}${date ? ' · desde el ' + escapeHtml(date) : ''}</div></div></div>${actions}</div>`;
     }).join('');
+    window.lucide?.createIcons();
   } catch (error) {
     target.innerHTML = '<div class="vacio">No pudimos cargar las cuentas. <button type="button" class="retry">Reintentar</button></div>';
     target.querySelector('.retry').addEventListener('click', () => loadUsers(state));
@@ -150,7 +199,7 @@ async function loadUsers(state) {
 app.addEventListener('click', async event => {
   const button = event.target.closest('button[data-id]');
   if (!button || !isAdmin(auth.currentUser)) return;
-  if (button.classList.contains('eliminar') && !confirm(`¿Quitarle el acceso al panel a ${button.dataset.correo}? Su cuenta de Firebase Authentication seguirá existiendo.`)) return;
+  if (button.classList.contains('eliminar') && !confirm(`¿Quitarle el acceso al panel a ${button.dataset.correo}? Su cuenta no se borra, solo deja de poder entrar.`)) return;
   button.disabled = true;
   try {
     const ref = doc(db, 'usuarios', button.dataset.id);
